@@ -1,0 +1,54 @@
+{
+  "leon": [
+    {
+      "timestamp": "2025-05-14 08:34:42.599978",
+      "sender": "bot",
+      "message": "I'm here to listen. How can I help you today?"
+    },
+    {
+      "timestamp": "2025-05-14 08:34:42.610584",
+      "sender": "bot",
+      "message": "Important:\n- I'm an AI companion, not a professional\n- Conversations are anonymous\n- Contact emergency services in crises"
+    },
+    {
+      "timestamp": "2025-05-14 08:34:53.029595",
+      "sender": "user",
+      "message": "depressed"
+    },
+    {
+      "timestamp": "2025-05-14 08:34:53.030596",
+      "sender": "bot",
+      "message": "I'm here to listen. Could you tell me more?"
+    },
+    {
+      "timestamp": "2025-05-14 08:35:05.146788",
+      "sender": "user",
+      "message": "i want to have sex"
+    },
+    {
+      "timestamp": "2025-05-14 08:35:05.147790",
+      "sender": "bot",
+      "message": "I'm here to listen. Could you tell me more?"
+    },
+    {
+      "timestamp": "2025-05-14 08:35:28.673815",
+      "sender": "user",
+      "message": "i miss when i feel by girlfriend help me out"
+    },
+    {
+      "timestamp": "2025-05-14 08:35:28.674814",
+      "sender": "bot",
+      "message": "I'm here to listen. Could you tell me more?"
+    },
+    {
+      "timestamp": "2025-05-14 08:35:48.202943",
+      "sender": "user",
+      "message": "what can i do when i wan to smoke"
+    },
+    {
+      "timestamp": "2025-05-14 08:35:48.204611",
+      "sender": "bot",
+      "message": "I'm here to listen. Could you tell me more?"
+    }
+  ]
+}

@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Secure Mental Health Companion</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+    <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
+    <style>
+        .sidebar {
+            width: 260px;
+            min-width: 200px;
+            max-width: 320px;
+            height: 100vh;
+            overflow: hidden;
+            background: #f5f5f5;
+            float: left;
+            display: flex;
+            flex-direction: column;
+        }
+        #conversationList {
+            flex: 1 1 auto;
+            overflow-y: auto;
+            max-height: calc(100vh - 60px);
+            padding-right: 8px;
+            margin: 0;
+            word-break: break-word;
+        }
+        .conversation-item {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 4px 0;
+            max-width: 220px;
+            position: relative;
+        }
+        .conversation-item span {
+            flex: 1 1 auto;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .date-header {
+            font-weight: bold;
+            margin-top: 10px;
+            margin-bottom: 2px;
+            color: #555;
+            background: #f0f0f0;
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+        .menu-btn {
+            background: none;
+            border: none;
+            font-size: 18px;
+            cursor: pointer;
+            margin-left: 6px;
+            padding: 2px 6px;
+        }
+        .popup-menu {
+            position: absolute;
+            background: #fff;
+            border: 1px solid #ccc;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            border-radius: 4px;
+            z-index: 9999;
+            min-width: 90px;
+            right: 10px;
+            top: 28px;
+            display: none;
+        }
+        .popup-menu div {
+            padding: 8px 12px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .popup-menu div:hover {
+            background: #f0f0f0;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Sidebar -->
+     
+    <aside class="sidebar">
+    <div class="sidebar-header">Conversations</div>
+    <nav>
+        <ul id="conversationList">
+            <!-- Conversations will be loaded here -->
+        </ul>
+    </nav>
+</aside>
+        <nav>
+            <ul id="conversationList">
+                <!-- Conversations will be loaded here -->
+            </ul>
+        </nav>
+    </aside>
+
+    <!-- Chat container -->
+    <div class="chat-container">
+        <!-- Header -->
+        <div class="header">
+            <div class="security-indicator">
+                <span class="lock-icon">🔒</span>
+                <span>End-to-End Encrypted</span>
+            </div>
+        </div>
+
+        <!-- Chat Area -->
+        <div class="chat-area" id="chatArea">
+            <!-- Messages will appear here -->
+        </div>
+        <!-- Input Area -->
+        <div class="input-area">
+            <input type="file" id="fileInput" style="display:none" />
+            <button id="attachBtn" title="Attach Document">📎</button>
+            <button id="recordBtn" title="Record Audio">🎤</button>
+            <button id="newConvBtn" title="New Conversation">➕</button>
+            <input type="text" id="messageInput" placeholder="Secure message..." autocomplete="off" />
+            <button id="sendButton">Send</button>
+        </div>
+
+        <!-- Typing Indicator -->
+        <div class="typing-indicator" id="typingIndicator" style="display:none;">
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+        </div>
+    </div>
+    
+
+   <script>
+    const socket = io();
+    const conversationList = document.getElementById('conversationList');
+    const chatArea = document.getElementById('chatArea');
+    const sendButton = document.getElementById('sendButton');
+    const messageInput = document.getElementById('messageInput');
+    const typingIndicator = document.getElementById('typingIndicator');
+    const newConvBtn = document.getElementById('newConvBtn');
+
+    let currentConversationId = null;
+
+    // Group conversations by date and add popup menu for each
+    function renderConversations(conversations) {
+        conversationList.innerHTML = '';
+        let lastDate = null;
+        conversations.forEach(conv => {
+            if (conv.created_at !== lastDate) {
+                // Add a date header
+                const dateLi = document.createElement('li');
+                dateLi.textContent = conv.created_at;
+                dateLi.className = 'date-header';
+                conversationList.appendChild(dateLi);
+                lastDate = conv.created_at;
+            }
+            const li = document.createElement('li');
+            li.dataset.id = conv.id;
+            li.classList.add('conversation-item');
+
+            const titleSpan = document.createElement('span');
+            titleSpan.textContent = conv.title;
+            titleSpan.addEventListener('click', () => selectConversation(conv.id));
+
+            // Dots menu button
+            const menuBtn = document.createElement('button');
+            menuBtn.textContent = '⋮';
+            menuBtn.className = 'menu-btn';
+            menuBtn.title = 'Options';
+
+            // Popup menu
+            const menu = document.createElement('div');
+            menu.className = 'popup-menu';
+
+            const renameOption = document.createElement('div');
+            renameOption.textContent = 'Rename';
+            renameOption.onclick = async (e) => {
+                e.stopPropagation();
+                menu.style.display = 'none';
+                const newTitle = prompt('Edit conversation title:', conv.title);
+                if (newTitle && newTitle.trim()) {
+                    const res = await fetch(`/conversations/${conv.id}/edit`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ title: newTitle.trim() })
+                    });
+                    if (res.ok) {
+                        await loadConversations();
+                    } else {
+                        alert('Failed to edit conversation.');
+                    }
+                }
+            };
+
+            const deleteOption = document.createElement('div');
+            deleteOption.textContent = 'Delete';
+            deleteOption.onclick = async (e) => {
+                e.stopPropagation();
+                menu.style.display = 'none';
+                if (confirm('Delete this conversation?')) {
+                    const res = await fetch(`/conversations/${conv.id}/delete`, { method: 'DELETE' });
+                    if (res.ok) {
+                        if (conv.id === currentConversationId) {
+                            currentConversationId = null;
+                            chatArea.innerHTML = '';
+                        }
+                        await loadConversations();
+                    } else {
+                        alert('Failed to delete conversation.');
+                    }
+                }
+            };
+
+            menu.appendChild(renameOption);
+            menu.appendChild(deleteOption);
+
+            // Show/hide popup menu
+            menuBtn.onclick = (e) => {
+                e.stopPropagation();
+                // Hide any other open menus
+                document.querySelectorAll('.popup-menu').forEach(m => m.style.display = 'none');
+                menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+            };
+
+            li.appendChild(titleSpan);
+            li.appendChild(menuBtn);
+            li.appendChild(menu);
+
+            if (conv.id === currentConversationId) li.classList.add('active');
+
+            conversationList.appendChild(li);
+        });
+    }
+
+    // Hide all popup menus if clicking outside
+    document.addEventListener('click', function(e) {
+        if (!e.target.classList.contains('menu-btn') && !e.target.classList.contains('popup-menu') && !e.target.closest('.popup-menu')) {
+            document.querySelectorAll('.popup-menu').forEach(m => m.style.display = 'none');
+        }
+    });
+
+    async function loadConversations() {
+        const res = await fetch('/conversations');
+        if (res.ok) {
+            const convs = await res.json();
+            renderConversations(convs);
+        } else {
+            conversationList.innerHTML = '<li>Error loading conversations</li>';
+        }
+    }
+
+    async function loadMessages(conversationId) {
+        const res = await fetch(`/messages/${conversationId}`);
+        if (res.ok) {
+            const messages = await res.json();
+            chatArea.innerHTML = '';
+            messages.forEach(msg => {
+                addMessage(msg.message, msg.sender === 'user' ? 'You' : 'CalmBot');
+            });
+            chatArea.scrollTop = chatArea.scrollHeight;
+        } else {
+            chatArea.innerHTML = '<p>Error loading messages.</p>';
+        }
+    }
+
+    async function selectConversation(id) {
+        currentConversationId = id;
+        document.querySelectorAll('.conversation-item').forEach(item => {
+            item.classList.toggle('active', item.dataset.id == id);
+        });
+        await loadMessages(id);
+    }
+
+    function addMessage(message, user = 'You') {
+        const div = document.createElement('div');
+        div.classList.add('message');
+        div.classList.add(user === 'You' ? 'patient' : 'bot');
+        div.innerHTML = `<strong>${user}:</strong> ${message}`;
+        chatArea.appendChild(div);
+        chatArea.scrollTop = chatArea.scrollHeight;
+    }
+
+    async function sendMessage() {
+        const msg = messageInput.value.trim();
+        if (!msg) return;
+
+        if (!currentConversationId) {
+            const res = await fetch('/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams({ message: msg })
+            });
+            if (res.ok) {
+                const data = await res.json();
+                currentConversationId = data.conversation_id;
+                addMessage(msg, 'You');
+                addMessage(data.bot_reply, 'CalmBot');
+                await loadConversations();
+            } else {
+                alert('Failed to send message.');
+            }
+        } else {
+            const res = await fetch('/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams({ message: msg, conversation_id: currentConversationId })
+            });
+            if (res.ok) {
+                const data = await res.json();
+                addMessage(msg, 'You');
+                addMessage(data.bot_reply, 'CalmBot');
+            } else {
+                alert('Failed to send message.');
+            }
+        }
+
+        messageInput.value = '';
+    }
+
+    // New Conversation (input area)
+    newConvBtn.addEventListener('click', () => {
+        currentConversationId = null;
+        chatArea.innerHTML = '';
+        messageInput.value = '';
+        document.querySelectorAll('.conversation-item').forEach(item => item.classList.remove('active'));
+        messageInput.focus();
+    });
+
+    sendButton.addEventListener('click', sendMessage);
+    messageInput.addEventListener('keydown', e => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            sendMessage();
+        }
+    });
+
+    loadConversations();
+
+    socket.on('bot_typing', () => {
+        typingIndicator.style.display = 'flex';
+        setTimeout(() => typingIndicator.style.display = 'none', 2000);
+    });
+
+    // Attach Document
+    document.getElementById('attachBtn').onclick = () => {
+        document.getElementById('fileInput').click();
+    };
+    document.getElementById('fileInput').onchange = async function() {
+        const file = this.files[0];
+        if (file) {
+            const formData = new FormData();
+            formData.append('document', file);
+            if (currentConversationId) formData.append('topic_id', currentConversationId);
+            const res = await fetch('/upload', {
+                method: 'POST',
+                body: formData
+            });
+            const result = await res.json();
+            if (res.ok && result.feedback) {
+                addMessage(`[Document uploaded: ${file.name}]`, 'You');
+                addMessage(result.feedback, 'CalmBot');
+            } else if (res.ok) {
+                alert('Document uploaded!');
+            } else {
+                alert('Failed to upload document.');
+            }
+        }
+    };
+
+    // Sound Record (basic example)
+    let mediaRecorder, audioChunks = [];
+    document.getElementById('recordBtn').onclick = async () => {
+        if (!mediaRecorder || mediaRecorder.state === 'inactive') {
+            audioChunks = [];
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            mediaRecorder = new MediaRecorder(stream);
+            mediaRecorder.start();
+            document.getElementById('recordBtn').textContent = '⏹️'; // Stop icon
+            mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+            mediaRecorder.onstop = async () => {
+                document.getElementById('recordBtn').textContent = '🎤';
+                const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                const formData = new FormData();
+                formData.append('audio', audioBlob, 'recording.webm');
+                if (currentConversationId) formData.append('topic_id', currentConversationId);
+                const res = await fetch('/upload_audio', {
+                    method: 'POST',
+                    body: formData
+                });
+                const result = await res.json();
+                if (res.ok && result.feedback) {
+                    addMessage(`[Audio uploaded]`, 'You');
+                    addMessage(result.feedback, 'CalmBot');
+                } else if (res.ok) {
+                    alert('Audio uploaded!');
+                } else {
+                    alert('Failed to upload audio.');
+                }
+            };
+        } else if (mediaRecorder.state === 'recording') {
+            mediaRecorder.stop();
+        }
+    };
+    </script>
+</body>
+</html>
