@@ -19,20 +19,24 @@ import mimetypes
 
 # Load .env config
 load_dotenv()
-OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
-FERNET_KEY = os.getenv("FERNET_KEY")
+OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY")
+FERNET_KEY = os.environ.get("FERNET_KEY")
 
 # For debugging, print only first few characters of API key
 print("OPENROUTER_API_KEY loaded:", OPENROUTER_API_KEY[:10] + "..." if OPENROUTER_API_KEY else "Not found")
 
 # Setup app
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'your_secret_key_here'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your_secret_key_here')
+# Use DATABASE_URL for Heroku or fallback to SQLite for local development
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///users.db')
+# Fix for Heroku PostgreSQL URL format
+if app.config['SQLALCHEMY_DATABASE_URI'] and app.config['SQLALCHEMY_DATABASE_URI'].startswith('postgres://'):
+    app.config['SQLALCHEMY_DATABASE_URI'] = app.config['SQLALCHEMY_DATABASE_URI'].replace('postgres://', 'postgresql://', 1)
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['JWT_SECRET_KEY'] = 'your_jwt_secret_here'
+app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', 'your_jwt_secret_here')
 app.config['JWT_TOKEN_LOCATION'] = ['cookies']
-app.config['JWT_COOKIE_SECURE'] = False
+app.config['JWT_COOKIE_SECURE'] = os.environ.get('PRODUCTION', 'False') == 'True'
 app.config['JWT_COOKIE_HTTPONLY'] = True
 app.config['JWT_ACCESS_COOKIE_PATH'] = '/'
 app.config['JWT_COOKIE_CSRF_PROTECT'] = False
@@ -40,7 +44,7 @@ app.config['JWT_COOKIE_CSRF_PROTECT'] = False
 socketio = SocketIO(app, cors_allowed_origins="*")
 db = SQLAlchemy(app)
 jwt = JWTManager(app)
-fernet = Fernet(FERNET_KEY.encode())
+fernet = Fernet(FERNET_KEY.encode() if FERNET_KEY else os.urandom(32))
 
 # --------------------
 # Database Models
@@ -232,6 +236,8 @@ def edit_conversation(topic_id):
         db.session.commit()
         return jsonify({"success": True})
     return jsonify({"success": False}), 404
+
+# Set upload folder - use a folder that Heroku can write to temporarily
 UPLOAD_FOLDER = os.path.join(os.getcwd(), 'uploads')
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -286,6 +292,7 @@ def upload_document():
         db.session.commit()
 
     return jsonify({'success': True, 'filename': file.filename, 'feedback': feedback})
+
 @app.route('/logout')
 def logout():
     response = make_response(redirect(url_for('login_form')))
@@ -316,5 +323,5 @@ if __name__ == '__main__':
     import eventlet.wsgi
     with app.app_context():
         db.create_all()
-    socketio.run(app, debug=True)
-    
+    port = int(os.environ.get("PORT", 5000))
+    socketio.run(app, host='0.0.0.0', port=port)

@@ -7,3 +7,6 @@ pynacl
 python-dotenv
 google-generativeai
 requests
+gunicorn
+eventlet
+psycopg2-binary
