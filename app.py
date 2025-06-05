@@ -12,316 +12,205 @@ from cryptography.fernet import Fernet
 from nacl import public
 from werkzeug.security import generate_password_hash, check_password_hash
 from dotenv import load_dotenv
-from datetime import datetime
-from flask import request, jsonify
-import os
+from datetime import datetime, timedelta
 import mimetypes
+import eventlet
+eventlet.monkey_patch()
 
-# Load .env config
+# Load environment variables
 load_dotenv()
-OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY")
-FERNET_KEY = os.environ.get("FERNET_KEY")
 
-# For debugging, print only first few characters of API key
-print("OPENROUTER_API_KEY loaded:", OPENROUTER_API_KEY[:10] + "..." if OPENROUTER_API_KEY else "Not found")
+# Configuration
+class Config:
+    SECRET_KEY = os.environ.get('SECRET_KEY', os.urandom(24))
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL', 'sqlite:///users.db')
+    if SQLALCHEMY_DATABASE_URI and SQLALCHEMY_DATABASE_URI.startswith('postgres://'):
+        SQLALCHEMY_DATABASE_URI = SQLALCHEMY_DATABASE_URI.replace('postgres://', 'postgresql://', 1)
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        'pool_pre_ping': True,
+        'pool_recycle': 300,
+        'pool_timeout': 30,
+        'pool_size': 20,
+        'max_overflow': 30
+    }
+    JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY', os.urandom(24))
+    JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=1)
+    JWT_TOKEN_LOCATION = ['cookies']
+    JWT_COOKIE_SECURE = os.environ.get('PRODUCTION', 'False') == 'True'
+    JWT_COOKIE_HTTPONLY = True
+    JWT_COOKIE_CSRF_PROTECT = False
+    UPLOAD_FOLDER = os.path.join(os.getcwd(), 'uploads')
+    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-# Setup app
+# Initialize Flask app
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your_secret_key_here')
-# Use DATABASE_URL for Heroku or fallback to SQLite for local development
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///users.db')
-# Fix for Heroku PostgreSQL URL format
-if app.config['SQLALCHEMY_DATABASE_URI'] and app.config['SQLALCHEMY_DATABASE_URI'].startswith('postgres://'):
-    app.config['SQLALCHEMY_DATABASE_URI'] = app.config['SQLALCHEMY_DATABASE_URI'].replace('postgres://', 'postgresql://', 1)
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', 'your_jwt_secret_here')
-app.config['JWT_TOKEN_LOCATION'] = ['cookies']
-app.config['JWT_COOKIE_SECURE'] = os.environ.get('PRODUCTION', 'False') == 'True'
-app.config['JWT_COOKIE_HTTPONLY'] = True
-app.config['JWT_ACCESS_COOKIE_PATH'] = '/'
-app.config['JWT_COOKIE_CSRF_PROTECT'] = False
+app.config.from_object(Config)
 
-socketio = SocketIO(app, cors_allowed_origins="*")
+# Initialize extensions
 db = SQLAlchemy(app)
 jwt = JWTManager(app)
-fernet = Fernet(FERNET_KEY.encode() if FERNET_KEY else os.urandom(32))
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
 
-# --------------------
-# Database Models
-# --------------------
+# Initialize encryption
+FERNET_KEY = os.environ.get("FERNET_KEY", Fernet.generate_key().decode())
+fernet = Fernet(FERNET_KEY.encode())
+
+# Database Models (unchanged from your original)
 class User(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    email = db.Column(db.String(120), unique=True, nullable=False)
-    password = db.Column(db.String(128), nullable=False)
-    public_key = db.Column(db.Text, nullable=True)
-    private_key = db.Column(db.Text, nullable=True)
-
-    def set_password(self, password):
-        self.password = generate_password_hash(password)
-
-    def check_password(self, password):
-        return check_password_hash(self.password, password)
+    # ... (keep your existing User model code)
 
 class ChatHistory(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-    message = db.Column(db.Text, nullable=False)
-    response = db.Column(db.Text, nullable=True)
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
-    topic_id = db.Column(db.Integer, db.ForeignKey('topic.id'), nullable=True)
+    # ... (keep your existing ChatHistory model code)
 
 class Topic(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-    title = db.Column(db.String(255), nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    history = db.relationship('ChatHistory', backref='topic', lazy=True)
+    # ... (keep your existing Topic model code)
 
 class FileUpload(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))  # If you want to link to a user
-    filename = db.Column(db.String(255), nullable=False)
-    filetype = db.Column(db.String(50), nullable=False)  # e.g., 'document' or 'audio'
-    upload_time = db.Column(db.DateTime, default=datetime.utcnow)
-    topic_id = db.Column(db.Integer, db.ForeignKey('topic.id'), nullable=True)  # Optional: link to a conversation/topic
+    # ... (keep your existing FileUpload model code)
 
-    def as_dict(self):
-        return {
-            "id": self.id,
-            "filename": self.filename,
-            "filetype": self.filetype,
-            "upload_time": self.upload_time.isoformat(),
-            "topic_id": self.topic_id
-        }
-# -------------------
-# AI Logic (OpenRouter)
-# -------------------
+# Helper Functions
+def create_db_tables():
+    """Ensure database tables are created"""
+    with app.app_context():
+        try:
+            db.create_all()
+            print("Database tables created successfully")
+        except Exception as e:
+            print(f"Error creating database tables: {e}")
+            raise
+
+def get_db_session():
+    """Get a new database session"""
+    return db.session
+
+# Improved OpenRouter Integration
 def chat_with_openrouter(message):
+    """Enhanced with better error handling and logging"""
     try:
         url = "https://openrouter.ai/api/v1/chat/completions"
         headers = {
-            "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+            "Authorization": f"Bearer {os.environ.get('OPENROUTER_API_KEY')}",
             "Content-Type": "application/json"
         }
 
-        system_instruction = (
-            "You are a friendly, compassionate AI assistant trained in Cognitive Behavioral Therapy (CBT) "
-            " You help users improve their mental and emotional well-being. "
-            "Only respond to questions related to health and mental health. If a user asks anything unrelated, "
-            "gently redirect them back to mental wellness topics. Avoid topics such as sports, politics, or technology."
-        )
+        system_instruction = """..."""  # Your existing instruction
 
         data = {
             "model": "deepseek/deepseek-r1-0528:free",
             "messages": [
                 {"role": "system", "content": system_instruction},
                 {"role": "user", "content": message}
-            ]
+            ],
+            "temperature": 0.7,
+            "max_tokens": 500
         }
 
-        response = requests.post(url, headers=headers, json=data)
-        if response.status_code == 200:
-            return response.json()["choices"][0]["message"]["content"]
-        else:
-            print("OpenRouter Error:", response.text)
-            return "Sorry, I couldn't process your message right now."
-
+        response = requests.post(url, headers=headers, json=data, timeout=30)
+        response.raise_for_status()
+        return response.json()["choices"][0]["message"]["content"]
+    
+    except requests.exceptions.RequestException as e:
+        print(f"OpenRouter API Request Error: {e}")
     except Exception as e:
-        print(f"OpenRouter API Error: {e}")
-        return "Sorry, I couldn't process your message right now."
+        print(f"OpenRouter Processing Error: {e}")
+    return "Sorry, I couldn't process your message right now."
 
-# --------------------
-# Routes
-# --------------------
+# Enhanced Routes
 @app.route('/')
 def login_form():
     return render_template('login.html')
 
 @app.route('/login', methods=['POST'])
 def login():
-    email = request.form.get('email')
-    password = request.form.get('password')
-    user = db.session.query(User).filter_by(email=email).first()
-    if not user or not user.check_password(password):
-        return "Invalid credentials", 401
-    access_token = create_access_token(identity=str(user.id))
-    response = make_response(redirect(url_for('chat')))
-    set_access_cookies(response, access_token)
-    return response
+    try:
+        email = request.form.get('email', '').strip()
+        password = request.form.get('password', '').strip()
+        
+        if not email or not password:
+            return jsonify({"error": "Email and password are required"}), 400
+            
+        session = get_db_session()
+        user = session.query(User).filter_by(email=email).first()
+        
+        if not user or not user.check_password(password):
+            return jsonify({"error": "Invalid credentials"}), 401
+            
+        access_token = create_access_token(identity=str(user.id))
+        response = make_response(jsonify({"success": True, "redirect": url_for('chat')}))
+        set_access_cookies(response, access_token)
+        return response
+        
+    except Exception as e:
+        print(f"Login error: {str(e)}")
+        return jsonify({"error": "An error occurred during login"}), 500
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        email = request.form.get('email')
-        password = request.form.get('password')
-        if User.query.filter_by(email=email).first():
-            return "Email already exists", 400
-        private_key = public.PrivateKey.generate()
-        encrypted_private = fernet.encrypt(bytes(private_key))
-        user = User(
-            email=email,
-            public_key=base64.b64encode(bytes(private_key.public_key)).decode(),
-            private_key=base64.b64encode(encrypted_private).decode()
-        )
-        user.set_password(password)
-        db.session.add(user)
-        db.session.commit()
-        return redirect(url_for('login_form'))
+        try:
+            email = request.form.get('email', '').strip()
+            password = request.form.get('password', '').strip()
+            
+            if not email or not password:
+                return jsonify({"error": "Email and password are required"}), 400
+                
+            session = get_db_session()
+            if session.query(User).filter_by(email=email).first():
+                return jsonify({"error": "Email already exists"}), 400
+                
+            private_key = public.PrivateKey.generate()
+            encrypted_private = fernet.encrypt(bytes(private_key))
+            user = User(
+                email=email,
+                public_key=base64.b64encode(bytes(private_key.public_key)).decode(),
+                private_key=base64.b64encode(encrypted_private).decode()
+            )
+            user.set_password(password)
+            
+            session.add(user)
+            session.commit()
+            return jsonify({"success": True, "redirect": url_for('login_form')})
+            
+        except Exception as e:
+            session.rollback()
+            print(f"Registration error: {str(e)}")
+            return jsonify({"error": "An error occurred during registration"}), 500
+            
     return render_template('register.html')
 
-@app.route('/chat', methods=['GET', 'POST'])
-@jwt_required()
-def chat():
-    user_id = int(get_jwt_identity())
-    user = db.session.get(User, user_id)
-    bot_reply = None
+# ... (keep your other routes but update them to use get_db_session())
 
-    if request.method == 'POST':
-        user_message = request.form.get('message')
-        conversation_id = request.form.get('conversation_id')
+# Error Handlers
+@app.errorhandler(404)
+def not_found(error):
+    return jsonify({"error": "Resource not found"}), 404
 
-        if not user_message or user_message.strip() == "":
-            return jsonify({"error": "Message cannot be empty."}), 400
+@app.errorhandler(500)
+def internal_error(error):
+    return jsonify({"error": "Internal server error"}), 500
 
-        if conversation_id:
-            topic = db.session.get(Topic, int(conversation_id))
-        else:
-            topic = Topic(user_id=user.id, title=user_message)
-            db.session.add(topic)
-            db.session.commit()
+# SocketIO Events
+@socketio.on('connect')
+def handle_connect():
+    print(f"Client connected: {request.sid}")
 
-        bot_reply = chat_with_openrouter(user_message)
-        chat_record = ChatHistory(user_id=user.id, message=user_message, response=bot_reply, topic_id=topic.id)
-        db.session.add(chat_record)
-        db.session.commit()
+@socketio.on('disconnect')
+def handle_disconnect():
+    print(f"Client disconnected: {request.sid}")
 
-        return jsonify({"bot_reply": bot_reply, "conversation_id": topic.id})
+# ... (keep your existing socketio handlers)
 
-    topics = Topic.query.filter_by(user_id=user.id).all()
-    return render_template('index.html', username=user.email, bot_reply=bot_reply, topics=topics)
+# Application Startup
+def initialize_app():
+    create_db_tables()
+    print("Application initialization complete")
 
-@app.route('/conversations')
-@jwt_required()
-def get_conversations():
-    user_id = int(get_jwt_identity())
-    topics = Topic.query.filter_by(user_id=user_id).order_by(Topic.created_at.desc()).all()
-    return jsonify([
-        {
-            "id": t.id,
-            "title": t.title,
-            "created_at": t.created_at.strftime("%Y-%m-%d")
-        } for t in topics
-    ])
-
-@app.route('/conversations/<int:topic_id>/delete', methods=['DELETE'])
-@jwt_required()
-def delete_conversation(topic_id):
-    user_id = int(get_jwt_identity())
-    topic = db.session.query(Topic).filter_by(id=topic_id, user_id=user_id).first()
-    if topic:
-        ChatHistory.query.filter_by(topic_id=topic_id).delete()
-        db.session.delete(topic)
-        db.session.commit()
-        return jsonify({"success": True})
-    return jsonify({"success": False, "error": "Topic not found or unauthorized"}), 404
-
-
-@app.route('/conversations/<int:topic_id>/edit', methods=['POST'])
-@jwt_required()
-def edit_conversation(topic_id):
-    new_title = request.json.get("title")
-    topic = db.session.get(Topic, topic_id)
-    if topic:
-        topic.title = new_title
-        db.session.commit()
-        return jsonify({"success": True})
-    return jsonify({"success": False}), 404
-
-# Set upload folder - use a folder that Heroku can write to temporarily
-UPLOAD_FOLDER = os.path.join(os.getcwd(), 'uploads')
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-
-
-@app.route('/upload', methods=['POST'])
-@jwt_required()
-def upload_document():
-    user_id = int(get_jwt_identity())
-    topic_id = request.form.get('topic_id')
-    if 'document' not in request.files:
-        return jsonify({'success': False, 'error': 'No file part'}), 400
-    file = request.files['document']
-    if file.filename == '':
-        return jsonify({'success': False, 'error': 'No selected file'}), 400
-    filepath = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
-    file.save(filepath)
-
-    # Save metadata in DB
-    file_record = FileUpload(
-        user_id=user_id,
-        filename=file.filename,
-        filetype='document',
-        topic_id=topic_id
-    )
-    db.session.add(file_record)
-    db.session.commit()
-
-    # --- Analyze file content ---
-    feedback = "Sorry, I couldn't analyze this file."
-    mimetype, _ = mimetypes.guess_type(file.filename)
-    try:
-        # Example for .txt files
-        if file.filename.endswith('.txt'):
-            with open(filepath, 'r', encoding='utf-8') as f:
-                content = f.read()
-            prompt = f"Analyze the following document and provide feedback for mental health support:\n\n{content[:2000]}"
-            feedback = chat_with_openrouter(prompt)
-        # You can add PDF/DOCX support here if needed
-    except Exception as e:
-        feedback = f"Error analyzing file: {e}"
-
-    # Optionally, save feedback as a chat message
-    if topic_id:
-        chat_record = ChatHistory(
-            user_id=user_id,
-            message=f"[Document uploaded: {file.filename}]",
-            response=feedback,
-            topic_id=topic_id
-        )
-        db.session.add(chat_record)
-        db.session.commit()
-
-    return jsonify({'success': True, 'filename': file.filename, 'feedback': feedback})
-
-@app.route('/logout')
-def logout():
-    response = make_response(redirect(url_for('login_form')))
-    unset_jwt_cookies(response)
-    return response
-
-# --------------------
-# SocketIO Chat
-# --------------------
-@socketio.on('send_message')
-def handle_send_message(data):
-    user_message = data.get('message')
-    user_id = data.get('user_id')
-
-    bot_reply = chat_with_openrouter(user_message)
-
-    history = ChatHistory(user_id=user_id, message=user_message, response=bot_reply)
-    db.session.add(history)
-    db.session.commit()
-
-    emit('receive_message', {'user': 'CalmBot', 'message': bot_reply}, to=request.sid)
-
-# --------------------
-# Run App
-# --------------------
 if __name__ == '__main__':
-    import eventlet
-    import eventlet.wsgi
-    with app.app_context():
-        db.create_all()
+    initialize_app()
     port = int(os.environ.get("PORT", 5000))
-    socketio.run(app, host='0.0.0.0', port=port)
+    socketio.run(app, 
+                host='0.0.0.0', 
+                port=port, 
+                debug=os.environ.get('FLASK_DEBUG', 'False') == 'True',
+                log_output=True)
