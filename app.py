@@ -15,6 +15,7 @@ from dotenv import load_dotenv
 from datetime import datetime, timedelta
 import mimetypes
 import eventlet
+from sqlalchemy.exc import SQLAlchemyError
 eventlet.monkey_patch()
 
 # Load environment variables
@@ -22,7 +23,7 @@ load_dotenv()
 
 # Configuration
 class Config:
-    SECRET_KEY = os.environ.get('SECRET_KEY', os.urandom(24))
+    SECRET_KEY = os.environ.get('SECRET_KEY', os.urandom(24).hex())
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL', 'sqlite:///users.db')
     if SQLALCHEMY_DATABASE_URI and SQLALCHEMY_DATABASE_URI.startswith('postgres://'):
         SQLALCHEMY_DATABASE_URI = SQLALCHEMY_DATABASE_URI.replace('postgres://', 'postgresql://', 1)
@@ -31,10 +32,10 @@ class Config:
         'pool_pre_ping': True,
         'pool_recycle': 300,
         'pool_timeout': 30,
-        'pool_size': 20,
-        'max_overflow': 30
+        'pool_size': 10,
+        'max_overflow': 20
     }
-    JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY', os.urandom(24))
+    JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY', os.urandom(24).hex())
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=1)
     JWT_TOKEN_LOCATION = ['cookies']
     JWT_COOKIE_SECURE = os.environ.get('PRODUCTION', 'False') == 'True'
@@ -56,37 +57,78 @@ socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
 FERNET_KEY = os.environ.get("FERNET_KEY", Fernet.generate_key().decode())
 fernet = Fernet(FERNET_KEY.encode())
 
-# Database Models (unchanged from your original)
+# Database Models
 class User(db.Model):
-    # ... (keep your existing User model code)
+    __tablename__ = 'users'  # Explicit table name to avoid issues
+    
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(120), unique=True, nullable=False)
+    password = db.Column(db.String(128), nullable=False)
+    public_key = db.Column(db.Text, nullable=True)
+    private_key = db.Column(db.Text, nullable=True)
+
+    def set_password(self, password):
+        self.password = generate_password_hash(password)
+
+    def check_password(self, password):
+        return check_password_hash(self.password, password)
 
 class ChatHistory(db.Model):
-    # ... (keep your existing ChatHistory model code)
+    __tablename__ = 'chat_history'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    message = db.Column(db.Text, nullable=False)
+    response = db.Column(db.Text, nullable=True)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    topic_id = db.Column(db.Integer, db.ForeignKey('topics.id'), nullable=True)
 
 class Topic(db.Model):
-    # ... (keep your existing Topic model code)
+    __tablename__ = 'topics'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    title = db.Column(db.String(255), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    history = db.relationship('ChatHistory', backref='topic', lazy=True)
 
 class FileUpload(db.Model):
-    # ... (keep your existing FileUpload model code)
+    __tablename__ = 'file_uploads'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    filename = db.Column(db.String(255), nullable=False)
+    filetype = db.Column(db.String(50), nullable=False)
+    upload_time = db.Column(db.DateTime, default=datetime.utcnow)
+    topic_id = db.Column(db.Integer, db.ForeignKey('topics.id'), nullable=True)
+
+    def as_dict(self):
+        return {
+            "id": self.id,
+            "filename": self.filename,
+            "filetype": self.filetype,
+            "upload_time": self.upload_time.isoformat(),
+            "topic_id": self.topic_id
+        }
 
 # Helper Functions
 def create_db_tables():
-    """Ensure database tables are created"""
+    """Ensure database tables are created properly"""
     with app.app_context():
         try:
             db.create_all()
             print("Database tables created successfully")
         except Exception as e:
-            print(f"Error creating database tables: {e}")
+            print(f"Error creating database tables: {str(e)}")
             raise
 
 def get_db_session():
-    """Get a new database session"""
+    """Get a fresh database session"""
     return db.session
 
 # Improved OpenRouter Integration
 def chat_with_openrouter(message):
-    """Enhanced with better error handling and logging"""
+    """Enhanced with better error handling and timeout"""
     try:
         url = "https://openrouter.ai/api/v1/chat/completions"
         headers = {
@@ -94,7 +136,7 @@ def chat_with_openrouter(message):
             "Content-Type": "application/json"
         }
 
-        system_instruction = """..."""  # Your existing instruction
+        system_instruction = """You are a friendly, compassionate AI assistant trained in Cognitive Behavioral Therapy (CBT)..."""
 
         data = {
             "model": "deepseek/deepseek-r1-0528:free",
@@ -109,14 +151,11 @@ def chat_with_openrouter(message):
         response = requests.post(url, headers=headers, json=data, timeout=30)
         response.raise_for_status()
         return response.json()["choices"][0]["message"]["content"]
-    
-    except requests.exceptions.RequestException as e:
-        print(f"OpenRouter API Request Error: {e}")
     except Exception as e:
-        print(f"OpenRouter Processing Error: {e}")
-    return "Sorry, I couldn't process your message right now."
+        print(f"OpenRouter Error: {str(e)}")
+        return "Sorry, I couldn't process your message right now."
 
-# Enhanced Routes
+# Routes
 @app.route('/')
 def login_form():
     return render_template('login.html')
@@ -129,20 +168,31 @@ def login():
         
         if not email or not password:
             return jsonify({"error": "Email and password are required"}), 400
-            
-        session = get_db_session()
-        user = session.query(User).filter_by(email=email).first()
         
-        if not user or not user.check_password(password):
+        # Use a fresh session for login operation
+        session = get_db_session()
+        user = session.query(User).filter(User.email == email).first()
+        
+        if not user:
+            return jsonify({"error": "Invalid credentials"}), 401
+            
+        if not user.check_password(password):
             return jsonify({"error": "Invalid credentials"}), 401
             
         access_token = create_access_token(identity=str(user.id))
-        response = make_response(jsonify({"success": True, "redirect": url_for('chat')}))
+        response = make_response(jsonify({
+            "success": True, 
+            "redirect": url_for('chat')
+        }))
         set_access_cookies(response, access_token)
         return response
         
+    except SQLAlchemyError as e:
+        session.rollback()
+        print(f"Database error during login: {str(e)}")
+        return jsonify({"error": "Database error occurred"}), 500
     except Exception as e:
-        print(f"Login error: {str(e)}")
+        print(f"Unexpected error during login: {str(e)}")
         return jsonify({"error": "An error occurred during login"}), 500
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -156,7 +206,7 @@ def register():
                 return jsonify({"error": "Email and password are required"}), 400
                 
             session = get_db_session()
-            if session.query(User).filter_by(email=email).first():
+            if session.query(User).filter(User.email == email).first():
                 return jsonify({"error": "Email already exists"}), 400
                 
             private_key = public.PrivateKey.generate()
@@ -172,14 +222,37 @@ def register():
             session.commit()
             return jsonify({"success": True, "redirect": url_for('login_form')})
             
-        except Exception as e:
+        except SQLAlchemyError as e:
             session.rollback()
-            print(f"Registration error: {str(e)}")
+            print(f"Database error during registration: {str(e)}")
+            return jsonify({"error": "Database error occurred"}), 500
+        except Exception as e:
+            print(f"Unexpected error during registration: {str(e)}")
             return jsonify({"error": "An error occurred during registration"}), 500
             
     return render_template('register.html')
 
-# ... (keep your other routes but update them to use get_db_session())
+# ... (keep your other routes with similar error handling improvements)
+
+# Database Health Check Endpoint
+@app.route('/db-health')
+def db_health_check():
+    try:
+        # Test connection
+        db.session.execute("SELECT 1")
+        # Test User table
+        user_count = db.session.query(User).count()
+        return jsonify({
+            "status": "healthy",
+            "user_count": user_count,
+            "database_url": app.config['SQLALCHEMY_DATABASE_URI']
+        })
+    except Exception as e:
+        return jsonify({
+            "status": "unhealthy",
+            "error": str(e),
+            "database_url": app.config['SQLALCHEMY_DATABASE_URI']
+        }), 500
 
 # Error Handlers
 @app.errorhandler(404)
@@ -190,21 +263,15 @@ def not_found(error):
 def internal_error(error):
     return jsonify({"error": "Internal server error"}), 500
 
-# SocketIO Events
-@socketio.on('connect')
-def handle_connect():
-    print(f"Client connected: {request.sid}")
-
-@socketio.on('disconnect')
-def handle_disconnect():
-    print(f"Client disconnected: {request.sid}")
-
-# ... (keep your existing socketio handlers)
-
 # Application Startup
 def initialize_app():
-    create_db_tables()
-    print("Application initialization complete")
+    try:
+        create_db_tables()
+        print("Application initialization complete")
+        print(f"Database URL: {app.config['SQLALCHEMY_DATABASE_URI']}")
+    except Exception as e:
+        print(f"Failed to initialize application: {str(e)}")
+        raise
 
 if __name__ == '__main__':
     initialize_app()
