@@ -19,14 +19,14 @@
         .app-container {
             display: flex;
             height: 100vh;
-            width: 90%;
-            max-width: 1400px;
+            width: 80%;
+            max-width: 1200px;
             margin: 0 auto;
         }
         
         /* Sidebar styles */
         .sidebar {
-            width: 280px;
+            width: 250px;
             background-color: #fff;
             border-right: 1px solid #e0e0e0;
             display: flex;
@@ -106,9 +106,9 @@
         }
         
         .chat-container {
-            width: 100%;
-            max-width: 800px;
-            height: 90%;
+            width: 90%;
+            max-width: 650px;
+            height: 80%;
             background-color: #fff;
             box-shadow: 0 2px 20px rgba(0,0,0,0.1);
             border-radius: 24px;
@@ -118,7 +118,7 @@
         }
         
         .chat-header {
-            padding: 16px;
+            padding: 14px;
             background-color: #0D47A1;
             color: white;
             display: flex;
@@ -129,13 +129,14 @@
         
         .chat-title {
             font-weight: bold;
-            font-size: 18px;
+            font-size: 16px;
         }
         
         .header-actions a {
             color: white;
             text-decoration: none;
             margin-left: 16px;
+            font-size: 14px;
         }
         
         .messages-container {
@@ -154,6 +155,7 @@
             border-radius: 18px;
             position: relative;
             word-wrap: break-word;
+            font-size: 14px;
         }
         
         .user-message {
@@ -182,8 +184,8 @@
         }
         
         .dot {
-            width: 8px;
-            height: 8px;
+            width: 6px;
+            height: 6px;
             background-color: #999;
             border-radius: 50%;
             margin: 0 3px;
@@ -208,7 +210,7 @@
         }
         
         .input-area {
-            padding: 16px;
+            padding: 12px;
             display: flex;
             align-items: center;
             border-top: 1px solid #e0e0e0;
@@ -219,13 +221,13 @@
         
         .input-tools {
             display: flex;
-            margin-right: 12px;
+            margin-right: 10px;
         }
         
         .tool-button {
             background: none;
             border: none;
-            font-size: 20px;
+            font-size: 18px;
             color: #0D47A1;
             cursor: pointer;
             margin-right: 8px;
@@ -234,10 +236,10 @@
         
         #messageInput {
             flex: 1;
-            padding: 12px 16px;
+            padding: 10px 14px;
             border: 1px solid #e0e0e0;
             border-radius: 24px;
-            font-size: 15px;
+            font-size: 14px;
             outline: none;
         }
         
@@ -249,14 +251,15 @@
             background-color: #0D47A1;
             color: white;
             border: none;
-            width: 40px;
-            height: 40px;
+            width: 36px;
+            height: 36px;
             border-radius: 50%;
-            margin-left: 12px;
+            margin-left: 10px;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
+            font-size: 14px;
         }
         
         #sendButton:hover {
@@ -266,13 +269,13 @@
         /* Responsive adjustments */
         @media (max-width: 992px) {
             .app-container {
-                width: 100%;
+                width: 95%;
             }
         }
         
         @media (max-width: 768px) {
             .sidebar {
-                width: 240px;
+                width: 220px;
             }
             
             .message {
@@ -405,21 +408,21 @@
                 const lowerMessage = message.toLowerCase();
                 
                 if (lowerMessage.includes('sad') || lowerMessage.includes('depress')) {
-                    response = "I understand feeling sad can be difficult. Would you like to talk more about what's making you feel this way? Sometimes identifying specific triggers can help us address them better.";
+                    response = "I understand feeling sad can be difficult. Would you like to talk more about what's making you feel this way?";
                 } else if (lowerMessage.includes('anxious') || lowerMessage.includes('anxiety') || lowerMessage.includes('stress')) {
-                    response = "Anxiety can be challenging to deal with. Have you tried any breathing exercises? Taking slow, deep breaths for a few minutes can help activate your parasympathetic nervous system and reduce anxiety.";
+                    response = "Anxiety can be challenging. Have you tried any breathing exercises? Taking slow, deep breaths can help calm your nervous system.";
                 } else if (lowerMessage.includes('happy') || lowerMessage.includes('good') || lowerMessage.includes('great')) {
-                    response = "I'm glad to hear you're feeling positive! What specific things have contributed to your good mood today? Recognizing these positive factors can help reinforce them.";
-                } else if (lowerMessage.includes('sleep') || lowerMessage.includes('tired') || lowerMessage.includes('insomnia')) {
-                    response = "Sleep issues can significantly impact mental health. Have you established a consistent sleep routine? Going to bed and waking up at the same time daily can help regulate your body's internal clock.";
+                    response = "I'm glad to hear you're feeling positive! What specific things have contributed to your good mood today?";
+                } else if (lowerMessage.includes('sleep') || lowerMessage.includes('tired')) {
+                    response = "Sleep issues can significantly impact mental health. Have you established a consistent sleep routine?";
                 } else if (lowerMessage.includes('help') || lowerMessage.includes('advice')) {
-                    response = "I'm here to support you. To provide the most helpful guidance, could you share more specific details about what you're experiencing?";
+                    response = "I'm here to support you. Could you share more specific details about what you're experiencing?";
                 } else {
-                    response = "Thank you for sharing that with me. How does this situation make you feel emotionally? Understanding your emotional response can help us work through this together.";
+                    response = "Thank you for sharing that with me. How does this situation make you feel emotionally?";
                 }
                 
                 addMessage(response, false);
-            }, 2000);
+            }, 1500);
         }
         
         // Add message to chat
