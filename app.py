@@ -148,7 +148,7 @@ def chat_with_openrouter(message):
     """Enhanced with better error handling and timeout"""
     try:
         url = "https://openrouter.ai/api/v1/chat/completions"
-        
+
         headers = {
             "Authorization": f"Bearer {os.environ.get('OPENROUTER_API_KEY')}",
             "Content-Type": "application/json"
@@ -157,7 +157,7 @@ def chat_with_openrouter(message):
         system_instruction = """You are a friendly, compassionate AI assistant trained in Cognitive Behavioral Therapy (CBT)..."""
 
         data = {
-            "model": "deepseek/deepseek-r1-0528",
+            "model": "google/gemini-2.5-pro-preview",
             "messages": [
                 {"role": "system", "content": system_instruction},
                 {"role": "user", "content": message}
