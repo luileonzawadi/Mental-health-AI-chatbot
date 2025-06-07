@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mental Health AI Chatbot</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.6.1/socket.io.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #E3F2FD;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        .app-container {
+            display: flex;
+            height: 100vh;
+        }
+        
+        /* Sidebar styles */
+        .sidebar {
+            width: 250px;
+            height: 100vh;
+            background-color: #fff;
+            border-right: 1px solid #e0e0e0;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+        }
+        
+        .sidebar-header {
+            padding: 16px;
+            background-color: #0D47A1;
+            color: white;
+            font-weight: bold;
+            font-size: 18px;
+        }
+        
+        .date-header {
+            padding: 10px 16px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #65676B;
+            background-color: #f5f6f7;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .conversation-item {
+            padding: 10px 16px;
+            border-bottom: 1px solid #e0e0e0;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .conversation-item:hover {
+            background-color: #f0f2f5;
+        }
+        
+        .conversation-title {
+            font-size: 15px;
+            margin-bottom: 3px;
+            color: #050505;
+        }
+        
+        .conversation-preview {
+            font-size: 13px;
+            color: #65676B;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .talk-to-medic-btn {
+            margin: 16px;
+            padding: 8px;
+            background-color: #D32F2F;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            text-align: center;
+            transition: background-color 0.2s;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .talk-to-medic-btn:hover {
+            background-color: #B71C1C;
+        }
+        
+        .talk-to-medic-btn .icon {
+            margin-right: 8px;
+            font-size: 18px;
+        }
+        
+        /* Main chat area */
+        .main-content {
+            margin-left: 0;
+            width: calc(100% - 250px);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .chat-container {
+            width: 500px;
+            height: 500px;
+            background-color: #fff;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.1);
+            border-radius: 20px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .chat-header {
+            padding: 12px 16px;
+            background-color: #0D47A1;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .chat-header.medical {
+            background-color: #D32F2F;
+        }
+        
+        .chat-title {
+            font-weight: bold;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .chat-title .status-dot {
+            width: 10px;
+            height: 10px;
+            background-color: #4CAF50;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .header-actions {
+            display: flex;
+            align-items: center;
+        }
+        
+        .header-actions a {
+            color: white;
+            text-decoration: none;
+            margin-left: 16px;
+            font-size: 14px;
+        }
+        
+        .profile-icon {
+            width: 32px;
+            height: 32px;
+            background-color: #fff;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-left: 16px;
+            color: #0D47A1;
+            font-weight: bold;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        
+        .messages-container {
+            flex: 1;
+            padding: 12px;
+            overflow-y: auto;
+            background-color: #fff;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .message {
+            max-width: 70%;
+            padding: 10px 14px;
+            margin-bottom: 10px;
+            border-radius: 15px;
+            position: relative;
+            word-wrap: break-word;
+            font-size: 14px;
+        }
+        
+        .user-message {
+            background-color: #E3F2FD;
+            color: #000;
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+        
+        .bot-message {
+            background-color: #f1f1f1;
+            color: #000;
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+        }
+        
+        .medic-message {
+            background-color: #FFEBEE;
+            color: #000;
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+        }
+        
+        .typing-indicator {
+            display: flex;
+            padding: 10px;
+            align-items: center;
+            align-self: flex-start;
+            background-color: #f1f1f1;
+            border-radius: 15px;
+            margin-bottom: 10px;
+            border-bottom-left-radius: 4px;
+        }
+        
+        .dot {
+            width: 6px;
+            height: 6px;
+            background-color: #999;
+            border-radius: 50%;
+            margin: 0 2px;
+            animation: bounce 1.5s infinite;
+        }
+        
+        .dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+        
+        .dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+        
+        @keyframes bounce {
+            0%, 60%, 100% {
+                transform: translateY(0);
+            }
+            30% {
+                transform: translateY(-4px);
+            }
+        }
+        
+        .input-area {
+            padding: 12px;
+            display: flex;
+            align-items: center;
+            border-top: 1px solid #e0e0e0;
+            background-color: #fff;
+            border-bottom-left-radius: 20px;
+            border-bottom-right-radius: 20px;
+        }
+        
+        .input-tools {
+            display: flex;
+            margin-right: 10px;
+        }
+        
+        .tool-button {
+            background: none;
+            border: none;
+            font-size: 18px;
+            color: #0D47A1;
+            cursor: pointer;
+            margin-right: 8px;
+            padding: 2px;
+        }
+        
+        #messageInput {
+            flex: 1;
+            padding: 10px 12px;
+            border: 1px solid #e0e0e0;
+            border-radius: 20px;
+            font-size: 14px;
+            outline: none;
+            background-color: #fff;
+        }
+        
+        #messageInput:focus {
+            border-color: #0D47A1;
+        }
+        
+        #sendButton {
+            background-color: #0D47A1;
+            color: white;
+            border: none;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            margin-left: 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+        
+        #sendButton.medical {
+            background-color: #D32F2F;
+        }
+        
+        #sendButton:hover {
+            background-color: #1565C0;
+        }
+        
+        #sendButton.medical:hover {
+            background-color: #B71C1C;
+        }
+        
+        .new-chat-btn {
+            background-color: #0D47A1;
+            color: white;
+            border: none;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            margin-left: 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+        
+        .new-chat-btn:hover {
+            background-color: #1565C0;
+        }
+        
+        /* Status indicator */
+        .connection-status {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            color: white;
+            background-color: #666;
+        }
+        
+        .connection-status.connected {
+            background-color: #4CAF50;
+        }
+        
+        .connection-status.disconnected {
+            background-color: #F44336;
+        }
+        
+        .connection-status.connecting {
+            background-color: #FF9800;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar with conversation history -->
+        <div class="sidebar">
+            <div class="sidebar-header">Conversation History</div>
+            <button class="talk-to-medic-btn" id="talkToMedicBtn"><span class="icon">👨‍⚕️</span> Talk to a Medical Professional</button>
+            
+            <!-- Sample conversation history -->
+            <div class="date-header">Today</div>
+            <div class="conversation-item">
+                <div class="conversation-title">Morning Check-in</div>
+                <div class="conversation-preview">I've been feeling anxious about my upcoming presentation...</div>
+            </div>
+            <div class="conversation-item">
+                <div class="conversation-title">Stress Management</div>
+                <div class="conversation-preview">What are some techniques to manage work stress?</div>
+            </div>
+            
+            <div class="date-header">Yesterday</div>
+            <div class="conversation-item">
+                <div class="conversation-title">Sleep Issues</div>
+                <div class="conversation-preview">I've been having trouble falling asleep lately...</div>
+            </div>
+            <div class="conversation-item">
+                <div class="conversation-title">Meditation Practice</div>
+                <div class="conversation-preview">How can I improve my daily meditation routine?</div>
+            </div>
+            
+            <div class="date-header">June 5, 2025</div>
+            <div class="conversation-item">
+                <div class="conversation-title">Relationship Advice</div>
+                <div class="conversation-preview">I'm having difficulties communicating with my partner...</div>
+            </div>
+        </div>
+        
+        <!-- Main chat area -->
+        <div class="main-content">
+            <div class="chat-container">
+                <div class="chat-header" id="chatHeader">
+                    <div class="chat-title">Mental Health Assistant</div>
+                    <div class="header-actions">
+                        <a href="/logout">Logout</a>
+                        <div class="profile-icon">{{ user_name[0]|upper }}</div>
+                    </div>
+                </div>
+                
+                <div class="messages-container" id="messagesContainer">
+                    <div class="message bot-message">
+                        Hello {{ user_name }}! I'm your mental health companion. How are you feeling today?
+                    </div>
+                </div>
+                
+                <div class="typing-indicator" id="typingIndicator" style="display:none;">
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                </div>
+                
+                <div class="input-area">
+                    <div class="input-tools">
+                        <button class="tool-button" title="Record voice">🎤</button>
+                        <button class="tool-button" title="Attach file">📎</button>
+                        <button class="tool-button new-chat-btn" id="newChatBtn" title="New conversation">+</button>
+                    </div>
+                    <input type="text" id="messageInput" placeholder="Type your message...">
+                    <button id="sendButton">➤</button>
+                </div>
+                
+                <div class="connection-status" id="connectionStatus">Connecting...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Store user name for use in messages
+        const userName = "{{ user_name }}";
+        
+        const messagesContainer = document.getElementById('messagesContainer');
+        const messageInput = document.getElementById('messageInput');
+        const sendButton = document.getElementById('sendButton');
+        const typingIndicator = document.getElementById('typingIndicator');
+        const chatHeader = document.getElementById('chatHeader');
+        const newChatBtn = document.getElementById('newChatBtn');
+        const connectionStatus = document.getElementById('connectionStatus');
+        
+        // Initialize Socket.IO
+        const socket = io();
+        
+        // Connection status handling
+        socket.on('connect', () => {
+            console.log('Connected to server');
+            connectionStatus.textContent = 'Connected';
+            connectionStatus.className = 'connection-status connected';
+            setTimeout(() => {
+                connectionStatus.style.display = 'none';
+            }, 3000);
+        });
+        
+        socket.on('disconnect', () => {
+            console.log('Disconnected from server');
+            connectionStatus.textContent = 'Disconnected';
+            connectionStatus.className = 'connection-status disconnected';
+            connectionStatus.style.display = 'block';
+        });
+        
+        socket.on('connect_error', (error) => {
+            console.log('Connection error:', error);
+            connectionStatus.textContent = 'Connection Error';
+            connectionStatus.className = 'connection-status disconnected';
+            connectionStatus.style.display = 'block';
+        });
+        
+        // Message handling
+        socket.on('bot_typing', () => {
+            typingIndicator.style.display = 'flex';
+            messagesContainer.appendChild(typingIndicator);
+            scrollToBottom();
+        });
+        
+        socket.on('receive_message', (data) => {
+            typingIndicator.style.display = 'none';
+            addBotMessage(data.message);
+        });
+        
+        // Send message function
+        function sendMessage() {
+            const message = messageInput.value.trim();
+            if (!message) return;
+            
+            // Add user message to chat
+            addMessage(message, true);
+            
+            // Clear input
+            messageInput.value = '';
+            
+            // Send message to server
+            socket.emit('send_message', { message: message });
+        }
+        
+        // Add user message to chat
+        function addMessage(content, isUser) {
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('message');
+            messageDiv.classList.add(isUser ? 'user-message' : 'bot-message');
+            messageDiv.textContent = content;
+            
+            messagesContainer.appendChild(messageDiv);
+            scrollToBottom();
+        }
+        
+        // Add bot message to chat
+        function addBotMessage(content) {
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('message', 'bot-message');
+            messageDiv.textContent = content;
+            
+            messagesContainer.appendChild(messageDiv);
+            scrollToBottom();
+        }
+        
+        // Scroll to bottom of messages
+        function scrollToBottom() {
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+        
+        // Event listeners
+        sendButton.addEventListener('click', sendMessage);
+        
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+        
+        // Handle new conversation button
+        newChatBtn.addEventListener('click', () => {
+            // Clear chat history
+            messagesContainer.innerHTML = '';
+            
+            // Add welcome message
+            addBotMessage(`Hello ${userName}! I'm your mental health companion. How are you feeling today?`);
+        });
+    </script>
+</body>
+</html>
