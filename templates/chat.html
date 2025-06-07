@@ -12,42 +12,40 @@
             background-color: #f0f2f5;
             height: 100vh;
             overflow: hidden;
-            display: flex;
-            justify-content: center;
-            align-items: center;
         }
         
         .app-container {
             display: flex;
-            height: 85vh;
-            width: 70%;
-            max-width: 1000px;
+            height: 100vh;
+            width: 100%;
         }
         
         /* Sidebar styles */
         .sidebar {
-            width: 200px;
+            width: 250px;
+            height: 100vh;
             background-color: #fff;
             border-right: 1px solid #e0e0e0;
             display: flex;
             flex-direction: column;
             overflow-y: auto;
-            border-radius: 0 15px 15px 0;
             box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+            position: fixed;
+            left: 0;
+            top: 0;
         }
         
         .sidebar-header {
-            padding: 12px;
+            padding: 16px;
             background-color: #0D47A1;
             color: white;
             font-weight: bold;
             font-size: 16px;
-            border-top-right-radius: 15px;
         }
         
         .date-header {
-            padding: 8px 12px;
-            font-size: 12px;
+            padding: 10px 16px;
+            font-size: 13px;
             font-weight: 600;
             color: #65676B;
             background-color: #f5f6f7;
@@ -55,7 +53,7 @@
         }
         
         .conversation-item {
-            padding: 8px 12px;
+            padding: 10px 16px;
             border-bottom: 1px solid #e0e0e0;
             cursor: pointer;
             transition: background-color 0.2s;
@@ -66,13 +64,13 @@
         }
         
         .conversation-title {
-            font-size: 13px;
+            font-size: 14px;
             margin-bottom: 3px;
             color: #050505;
         }
         
         .conversation-preview {
-            font-size: 11px;
+            font-size: 12px;
             color: #65676B;
             white-space: nowrap;
             overflow: hidden;
@@ -80,7 +78,7 @@
         }
         
         .new-chat-btn {
-            margin: 12px;
+            margin: 16px;
             padding: 8px;
             background-color: #0D47A1;
             color: white;
@@ -90,7 +88,7 @@
             font-weight: bold;
             text-align: center;
             transition: background-color 0.2s;
-            font-size: 12px;
+            font-size: 13px;
         }
         
         .new-chat-btn:hover {
@@ -98,18 +96,18 @@
         }
         
         /* Main chat area */
-        .chat-wrapper {
-            flex: 1;
+        .main-content {
+            margin-left: 250px;
+            width: calc(100% - 250px);
+            height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
-            padding: 15px;
         }
         
         .chat-container {
-            width: 85%;
-            max-width: 500px;
-            height: 70%;
+            width: 500px;
+            height: 500px;
             background-color: #fff;
             box-shadow: 0 2px 15px rgba(0,0,0,0.1);
             border-radius: 20px;
@@ -119,7 +117,7 @@
         }
         
         .chat-header {
-            padding: 10px;
+            padding: 10px 16px;
             background-color: #0D47A1;
             color: white;
             display: flex;
@@ -268,44 +266,42 @@
         }
         
         /* Responsive adjustments */
-        @media (max-width: 992px) {
-            .app-container {
-                width: 85%;
-            }
-        }
-        
         @media (max-width: 768px) {
             .sidebar {
-                width: 180px;
+                width: 200px;
             }
             
-            .message {
-                max-width: 85%;
+            .main-content {
+                margin-left: 200px;
+                width: calc(100% - 200px);
+            }
+            
+            .chat-container {
+                width: 450px;
+                height: 450px;
             }
         }
         
         @media (max-width: 576px) {
-            .app-container {
-                flex-direction: column;
-                height: 95vh;
-            }
-            
             .sidebar {
                 width: 100%;
-                max-height: 25%;
-                border-radius: 0 0 15px 15px;
+                height: 30vh;
+                position: relative;
             }
             
-            .sidebar-header {
-                border-radius: 0;
+            .main-content {
+                margin-left: 0;
+                width: 100%;
+                height: 70vh;
             }
             
-            .chat-wrapper {
-                padding: 8px;
+            .app-container {
+                flex-direction: column;
             }
             
             .chat-container {
-                height: 100%;
+                width: 90%;
+                height: 90%;
             }
         }
     </style>
@@ -346,7 +342,7 @@
         </div>
         
         <!-- Main chat area -->
-        <div class="chat-wrapper">
+        <div class="main-content">
             <div class="chat-container">
                 <div class="chat-header">
                     <div class="chat-title">Mental Health Assistant</div>
