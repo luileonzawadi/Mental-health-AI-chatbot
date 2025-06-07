@@ -156,7 +156,7 @@ def chat_with_openrouter(message):
         system_instruction = """You are a friendly, compassionate AI assistant trained in Cognitive Behavioral Therapy (CBT)..."""
 
         data = {
-            "model": "deepseek/deepseek-r1-0528:free",
+            "model": "deepseek/deepseek-r1-0528",
             "messages": [
                 {"role": "system", "content": system_instruction},
                 {"role": "user", "content": message}
