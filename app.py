@@ -186,47 +186,56 @@ def login():
         if not email or not password:
             return jsonify({"error": "Email and password are required"}), 400
         
-        # Use a fresh session for login operation
-        session = get_db_session()
-        user = session.query(User).filter(User.email == email).first()
-        
-        if not user:
-            return jsonify({"error": "Invalid credentials"}), 401
+        try:
+            # Check if the users table exists
+            inspector = db.inspect(db.engine)
+            if 'users' not in inspector.get_table_names():
+                # Create tables if they don't exist
+                create_db_tables()
+                return jsonify({"error": "Please try again. Database was being set up."}), 500
             
-        if not user.check_password(password):
-            return jsonify({"error": "Invalid credentials"}), 401
+            # Use a fresh session for login operation
+            session = get_db_session()
+            user = session.query(User).filter(User.email == email).first()
             
-        access_token = create_access_token(identity=str(user.id))
-        html = """
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>Login Successful</title>
-            <meta http-equiv="refresh" content="1;url=/chat">
-            <style>
-                body { font-family: Arial; text-align: center; margin-top: 50px; }
-                h1 { color: #2196F3; }
-                a { color: #2196F3; }
-            </style>
-        </head>
-        <body>
-            <h1>Login Successful</h1>
-            <p>Redirecting to chat...</p>
-            <p>If you are not redirected, <a href="/chat">click here</a>.</p>
-        </body>
-        </html>
-        """
-        response = make_response(html)
-        set_access_cookies(response, access_token)
-        return response
-        
-    except SQLAlchemyError as e:
-        session.rollback()
-        print(f"Database error during login: {str(e)}")
-        return jsonify({"error": "Database error occurred"}), 500
+            if not user:
+                return jsonify({"error": "Invalid credentials"}), 401
+                
+            if not user.check_password(password):
+                return jsonify({"error": "Invalid credentials"}), 401
+                
+            access_token = create_access_token(identity=str(user.id))
+            html = """
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Login Successful</title>
+                <meta http-equiv="refresh" content="1;url=/chat">
+                <style>
+                    body { font-family: Arial; text-align: center; margin-top: 50px; }
+                    h1 { color: #2196F3; }
+                    a { color: #2196F3; }
+                </style>
+            </head>
+            <body>
+                <h1>Login Successful</h1>
+                <p>Redirecting to chat...</p>
+                <p>If you are not redirected, <a href="/chat">click here</a>.</p>
+            </body>
+            </html>
+            """
+            response = make_response(html)
+            set_access_cookies(response, access_token)
+            return response
+            
+        except SQLAlchemyError as e:
+            if session:
+                session.rollback()
+            print(f"Database error during login: {str(e)}")
+            return jsonify({"error": "Database error occurred. Please try again."}), 500
     except Exception as e:
         print(f"Unexpected error during login: {str(e)}")
-        return jsonify({"error": "An error occurred during login"}), 500
+        return jsonify({"error": "An error occurred during login. Please try again."}), 500
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
