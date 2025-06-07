@@ -148,6 +148,7 @@ def chat_with_openrouter(message):
     """Enhanced with better error handling and timeout"""
     try:
         url = "https://openrouter.ai/api/v1/chat/completions"
+        
         headers = {
             "Authorization": f"Bearer {os.environ.get('OPENROUTER_API_KEY')}",
             "Content-Type": "application/json"
