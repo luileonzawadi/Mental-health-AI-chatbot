@@ -195,7 +195,25 @@ def login():
             return jsonify({"error": "Invalid credentials"}), 401
             
         access_token = create_access_token(identity=str(user.id))
-        response = make_response(render_template('success.html'))
+        html = """
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Login Successful</title>
+            <meta http-equiv="refresh" content="1;url=/chat">
+            <style>
+                body { font-family: Arial; text-align: center; margin-top: 50px; }
+                h1 { color: green; }
+            </style>
+        </head>
+        <body>
+            <h1>Login Successful</h1>
+            <p>Redirecting to chat...</p>
+            <p>If you are not redirected, <a href="/chat">click here</a>.</p>
+        </body>
+        </html>
+        """
+        response = make_response(html)
         set_access_cookies(response, access_token)
         return response
         
@@ -247,21 +265,7 @@ def register():
 # Chat interface route
 @app.route('/chat')
 def chat():
-    try:
-        # Try to get the JWT identity
-        user_id = get_jwt_identity()
-        
-        # Get user topics if any
-        topics = []
-        try:
-            topics = Topic.query.filter_by(user_id=user_id).all()
-        except Exception as e:
-            print(f"Error fetching topics: {str(e)}")
-        
-        return render_template('chat.html', user_id=user_id, topics=topics)
-    except Exception as e:
-        print(f"Error accessing chat: {str(e)}")
-        return render_template('error.html', message="Please log in to access the chat."), 401
+    return render_template('chat.html')
 
 # Logout route
 @app.route('/logout')
