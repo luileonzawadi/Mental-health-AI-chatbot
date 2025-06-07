@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Login - Mental Health AI Chatbot</title>
     <style>
         body {
@@ -28,6 +29,7 @@
             text-align: center;
             color: #0D47A1;
             margin-bottom: 30px;
+            font-size: 24px;
         }
         
         .form-group {
@@ -43,25 +45,27 @@
         input[type="email"],
         input[type="password"] {
             width: 100%;
-            padding: 10px;
+            padding: 12px;
             border: 1px solid #ddd;
             border-radius: 5px;
             box-sizing: border-box;
+            font-size: 16px;
         }
         
         button {
             background-color: #0D47A1;
             color: white;
             border: none;
-            padding: 12px;
+            padding: 14px;
             width: 100%;
             border-radius: 5px;
             cursor: pointer;
             font-size: 16px;
+            font-weight: bold;
         }
         
         button:hover {
-            background-color: #0b7dda;
+            background-color: #1565C0;
         }
         
         .register-link {
@@ -72,6 +76,7 @@
         .register-link a {
             color: #0D47A1;
             text-decoration: none;
+            font-weight: bold;
         }
         
         .register-link a:hover {
@@ -92,6 +97,39 @@
         .guest-link a:hover {
             text-decoration: underline;
         }
+        
+        /* Responsive adjustments */
+        @media (max-width: 576px) {
+            .container {
+                width: 95%;
+                padding: 20px;
+                margin: 0 10px;
+            }
+            
+            h1 {
+                font-size: 22px;
+                margin-bottom: 20px;
+            }
+            
+            input[type="email"],
+            input[type="password"] {
+                padding: 10px;
+                font-size: 15px;
+            }
+            
+            button {
+                padding: 12px;
+            }
+        }
+        
+        /* Fix for iPhone X and newer with notches */
+        @supports (padding: max(0px)) {
+            body {
+                padding-left: max(0px, env(safe-area-inset-left));
+                padding-right: max(0px, env(safe-area-inset-right));
+                padding-bottom: max(0px, env(safe-area-inset-bottom));
+            }
+        }
     </style>
 </head>
 <body>
@@ -100,11 +138,11 @@
         <form id="loginForm" action="/login" method="post">
             <div class="form-group">
                 <label for="email">Email</label>
-                <input type="email" id="email" name="email" required>
+                <input type="email" id="email" name="email" required autocomplete="email">
             </div>
             <div class="form-group">
                 <label for="password">Password</label>
-                <input type="password" id="password" name="password" required>
+                <input type="password" id="password" name="password" required autocomplete="current-password">
             </div>
             <button type="submit">Login</button>
         </form>

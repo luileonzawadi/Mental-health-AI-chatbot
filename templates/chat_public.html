@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Mental Health AI Chatbot</title>
     <style>
         body {
@@ -14,11 +14,14 @@
             display: flex;
             justify-content: center;
             align-items: center;
+            overflow: hidden;
         }
         
         .chat-container {
-            width: 500px;
-            height: 500px;
+            width: 90%;
+            max-width: 500px;
+            height: 90vh;
+            max-height: 600px;
             background-color: #fff;
             box-shadow: 0 2px 15px rgba(0,0,0,0.1);
             border-radius: 20px;
@@ -134,21 +137,6 @@
             border-bottom-right-radius: 20px;
         }
         
-        .input-tools {
-            display: flex;
-            margin-right: 10px;
-        }
-        
-        .tool-button {
-            background: none;
-            border: none;
-            font-size: 18px;
-            color: #0D47A1;
-            cursor: pointer;
-            margin-right: 8px;
-            padding: 2px;
-        }
-        
         #messageInput {
             flex: 1;
             padding: 10px 12px;
@@ -185,6 +173,7 @@
         .login-prompt {
             margin-top: 20px;
             text-align: center;
+            padding: 0 15px 15px;
         }
         
         .login-button {
@@ -195,6 +184,47 @@
             padding: 10px 20px;
             border-radius: 5px;
             margin-top: 10px;
+            font-weight: bold;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 576px) {
+            .chat-container {
+                width: 95%;
+                height: 95vh;
+                border-radius: 15px;
+            }
+            
+            .message {
+                max-width: 85%;
+                font-size: 13px;
+                padding: 8px 12px;
+            }
+            
+            .input-area {
+                padding: 8px;
+            }
+            
+            #messageInput {
+                padding: 8px 10px;
+                font-size: 13px;
+            }
+            
+            #sendButton {
+                width: 30px;
+                height: 30px;
+            }
+            
+            .login-prompt {
+                font-size: 13px;
+            }
+        }
+        
+        /* Fix for iPhone X and newer with notches */
+        @supports (padding: max(0px)) {
+            .chat-container {
+                padding-bottom: max(0px, env(safe-area-inset-bottom));
+            }
         }
     </style>
 </head>
@@ -303,6 +333,14 @@
             if (e.key === 'Enter') {
                 sendMessage();
             }
+        });
+        
+        // Focus input field when page loads
+        window.addEventListener('load', () => {
+            // Small delay to ensure mobile keyboards don't pop up immediately
+            setTimeout(() => {
+                messageInput.focus();
+            }, 500);
         });
     </script>
 </body>

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Mental Health AI Chatbot</title>
     <style>
         body {
@@ -29,6 +29,7 @@
             flex-direction: column;
             overflow-y: auto;
             box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
         }
         
         .sidebar-header {
@@ -107,6 +108,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
+            transition: width 0.3s ease, margin-left 0.3s ease;
         }
         
         .chat-container {
@@ -338,6 +340,23 @@
             background-color: #1565C0;
         }
         
+        /* Mobile menu toggle */
+        .menu-toggle {
+            display: none;
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            z-index: 1000;
+            background-color: #0D47A1;
+            color: white;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        
         /* Modal styles */
         .modal {
             display: none;
@@ -409,48 +428,111 @@
         }
         
         /* Responsive adjustments */
-        @media (max-width: 768px) {
-            .sidebar {
-                width: 200px;
-            }
-            
-            .main-content {
-                width: calc(100% - 200px);
-            }
-            
+        @media (max-width: 992px) {
             .chat-container {
                 width: 450px;
                 height: 450px;
             }
         }
         
-        @media (max-width: 576px) {
+        @media (max-width: 768px) {
             .sidebar {
-                width: 100%;
-                height: 30vh;
+                width: 220px;
             }
             
             .main-content {
-                margin-left: 0;
-                width: 100%;
-                height: 70vh;
-            }
-            
-            .app-container {
-                flex-direction: column;
+                width: calc(100% - 220px);
             }
             
             .chat-container {
                 width: 90%;
                 height: 90%;
             }
+            
+            .message {
+                max-width: 80%;
+            }
+        }
+        
+        @media (max-width: 576px) {
+            .menu-toggle {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            
+            .sidebar {
+                position: fixed;
+                left: 0;
+                top: 0;
+                width: 80%;
+                max-width: 300px;
+                z-index: 999;
+                transform: translateX(-100%);
+            }
+            
+            .sidebar.active {
+                transform: translateX(0);
+            }
+            
+            .main-content {
+                width: 100%;
+                margin-left: 0;
+            }
+            
+            .chat-container {
+                width: 95%;
+                height: 95%;
+                border-radius: 15px;
+            }
+            
+            .message {
+                max-width: 85%;
+                font-size: 13px;
+                padding: 8px 12px;
+            }
+            
+            .input-area {
+                padding: 8px;
+            }
+            
+            .tool-button {
+                font-size: 16px;
+                margin-right: 5px;
+            }
+            
+            #messageInput {
+                padding: 8px 10px;
+                font-size: 13px;
+            }
+            
+            #sendButton {
+                width: 30px;
+                height: 30px;
+            }
+            
+            .modal-content {
+                width: 95%;
+                padding: 15px;
+            }
+        }
+        
+        /* Fix for iPhone X and newer with notches */
+        @supports (padding: max(0px)) {
+            .chat-container {
+                padding-left: max(12px, env(safe-area-inset-left));
+                padding-right: max(12px, env(safe-area-inset-right));
+                padding-bottom: max(12px, env(safe-area-inset-bottom));
+            }
         }
     </style>
 </head>
 <body>
+    <button class="menu-toggle" id="menuToggle">☰</button>
+    
     <div class="app-container">
         <!-- Sidebar with conversation history -->
-        <div class="sidebar">
+        <div class="sidebar" id="sidebar">
             <div class="sidebar-header">Conversation History</div>
             <button class="talk-to-medic-btn" id="talkToMedicBtn"><span class="icon">👨‍⚕️</span> Talk to a Medical Professional</button>
             
@@ -557,8 +639,25 @@
         const closeModal = document.getElementById('closeModal');
         const cancelMedic = document.getElementById('cancelMedic');
         const confirmMedic = document.getElementById('confirmMedic');
+        const menuToggle = document.getElementById('menuToggle');
+        const sidebar = document.getElementById('sidebar');
         
         let isMedicalChat = false;
+        
+        // Mobile menu toggle
+        menuToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('active');
+        });
+        
+        // Close sidebar when clicking outside on mobile
+        document.addEventListener('click', (e) => {
+            if (window.innerWidth <= 576 && 
+                sidebar.classList.contains('active') && 
+                !sidebar.contains(e.target) && 
+                e.target !== menuToggle) {
+                sidebar.classList.remove('active');
+            }
+        });
         
         // Send message function
         function sendMessage() {
@@ -661,6 +760,11 @@
             // Clear chat and add welcome message
             messagesContainer.innerHTML = '';
             addMedicMessage(`Hello ${userName}, I'm Dr. Sarah Johnson, a licensed mental health professional. How can I assist you today?`);
+            
+            // Close sidebar on mobile
+            if (window.innerWidth <= 576) {
+                sidebar.classList.remove('active');
+            }
         }
         
         // Switch back to AI chat
@@ -746,7 +850,19 @@
                 // For demo purposes, just clear and add a message
                 messagesContainer.innerHTML = '';
                 addBotMessage(`Let's continue our conversation about "${title}", ${userName}. How are you feeling about this today?`);
+                
+                // Close sidebar on mobile
+                if (window.innerWidth <= 576) {
+                    sidebar.classList.remove('active');
+                }
             });
+        });
+        
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            if (window.innerWidth > 576) {
+                sidebar.classList.remove('active');
+            }
         });
     </script>
 </body>
