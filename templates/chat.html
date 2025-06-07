@@ -3,125 +3,165 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Secure Mental Health Companion</title>
+    <title>Mental Health AI Chatbot</title>
     <style>
         body {
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 0;
-            background-color: #f5f5f5;
+            background-color: #f0f2f5;
             height: 100vh;
             overflow: hidden;
         }
         
-        .main-container {
+        .app-container {
             display: flex;
             height: 100vh;
         }
         
+        /* Sidebar styles */
         .sidebar {
-            width: 250px;
+            width: 280px;
             background-color: #fff;
-            border-right: 1px solid #ddd;
+            border-right: 1px solid #e0e0e0;
             display: flex;
             flex-direction: column;
             overflow-y: auto;
         }
         
         .sidebar-header {
-            padding: 15px;
+            padding: 16px;
             background-color: #2196F3;
             color: white;
             font-weight: bold;
+            font-size: 18px;
         }
         
-        .topic-date {
-            padding: 10px 15px;
-            font-weight: bold;
-            background-color: #f0f0f0;
-            border-bottom: 1px solid #ddd;
+        .date-header {
+            padding: 12px 16px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #65676B;
+            background-color: #f5f6f7;
+            border-bottom: 1px solid #e0e0e0;
         }
         
-        .topic-item {
-            padding: 10px 15px;
-            border-bottom: 1px solid #eee;
+        .conversation-item {
+            padding: 12px 16px;
+            border-bottom: 1px solid #e0e0e0;
             cursor: pointer;
+            transition: background-color 0.2s;
         }
         
-        .topic-item:hover {
-            background-color: #f0f0f0;
+        .conversation-item:hover {
+            background-color: #f0f2f5;
         }
         
-        .chat-wrapper {
+        .conversation-title {
+            font-size: 15px;
+            margin-bottom: 4px;
+            color: #050505;
+        }
+        
+        .conversation-preview {
+            font-size: 13px;
+            color: #65676B;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .new-chat-btn {
+            margin: 16px;
+            padding: 10px;
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            text-align: center;
+            transition: background-color 0.2s;
+        }
+        
+        .new-chat-btn:hover {
+            background-color: #1976D2;
+        }
+        
+        /* Main chat area */
+        .chat-container {
             flex: 1;
             display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-        }
-        
-        .chat-container {
-            width: 90%;
-            max-width: 800px;
-            height: 90vh;
-            background-color: white;
-            border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-            display: flex;
             flex-direction: column;
+            background-color: #fff;
+            max-width: 950px;
+            margin: 0 auto;
+            height: 100%;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         
-        .header {
-            padding: 15px;
+        .chat-header {
+            padding: 16px;
             background-color: #2196F3;
             color: white;
-            border-top-left-radius: 10px;
-            border-top-right-radius: 10px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            border-bottom: 1px solid #e0e0e0;
         }
         
-        .security-indicator {
-            display: flex;
-            align-items: center;
-            font-size: 14px;
+        .chat-title {
+            font-weight: bold;
+            font-size: 18px;
         }
         
-        .lock-icon {
-            margin-right: 5px;
+        .header-actions a {
+            color: white;
+            text-decoration: none;
+            margin-left: 16px;
         }
         
-        .chat-area {
+        .messages-container {
             flex: 1;
-            padding: 15px;
+            padding: 16px;
             overflow-y: auto;
+            background-color: #f0f2f5;
             display: flex;
             flex-direction: column;
         }
         
         .message {
-            margin-bottom: 10px;
-            padding: 10px;
-            border-radius: 5px;
-            max-width: 80%;
+            max-width: 70%;
+            padding: 12px 16px;
+            margin-bottom: 12px;
+            border-radius: 18px;
+            position: relative;
             word-wrap: break-word;
         }
         
         .user-message {
             background-color: #e3f2fd;
+            color: #000;
             align-self: flex-end;
+            border-bottom-right-radius: 4px;
         }
         
         .bot-message {
             background-color: #f1f1f1;
+            color: #000;
             align-self: flex-start;
+            border-bottom-left-radius: 4px;
         }
         
         .typing-indicator {
             display: flex;
-            padding: 10px;
+            padding: 12px;
             align-items: center;
+            align-self: flex-start;
+            background-color: #f1f1f1;
+            border-radius: 18px;
+            margin-bottom: 12px;
+            border-bottom-left-radius: 4px;
         }
         
         .dot {
@@ -151,157 +191,165 @@
         }
         
         .input-area {
-            padding: 15px;
+            padding: 16px;
             display: flex;
-            border-top: 1px solid #eee;
+            align-items: center;
+            border-top: 1px solid #e0e0e0;
+            background-color: #fff;
         }
         
         .input-tools {
             display: flex;
-            margin-right: 10px;
+            margin-right: 12px;
         }
         
-        .icon-button {
+        .tool-button {
             background: none;
             border: none;
             font-size: 20px;
+            color: #2196F3;
             cursor: pointer;
-            margin-right: 5px;
+            margin-right: 8px;
+            padding: 4px;
         }
         
         #messageInput {
             flex: 1;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            margin-right: 10px;
+            padding: 12px 16px;
+            border: 1px solid #e0e0e0;
+            border-radius: 24px;
+            font-size: 15px;
+            outline: none;
+        }
+        
+        #messageInput:focus {
+            border-color: #2196F3;
         }
         
         #sendButton {
-            padding: 10px 15px;
             background-color: #2196F3;
             color: white;
             border: none;
-            border-radius: 5px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin-left: 12px;
             cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         
-        .new-topic-btn {
-            margin: 15px;
-            padding: 10px;
-            background-color: #2196F3;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            text-align: center;
+        #sendButton:hover {
+            background-color: #1976D2;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 240px;
+            }
+            
+            .message {
+                max-width: 85%;
+            }
+        }
+        
+        @media (max-width: 576px) {
+            .app-container {
+                flex-direction: column;
+            }
+            
+            .sidebar {
+                width: 100%;
+                max-height: 30%;
+            }
+            
+            .chat-container {
+                width: 100%;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="main-container">
-        <!-- Sidebar with conversation topics -->
+    <div class="app-container">
+        <!-- Sidebar with conversation history -->
         <div class="sidebar">
             <div class="sidebar-header">Conversation History</div>
-            <div class="new-topic-btn">New Conversation</div>
+            <button class="new-chat-btn">+ New Conversation</button>
             
-            <!-- Topics organized by date -->
-            {% if topics_by_date %}
-                {% for date, topics in topics_by_date.items() %}
-                    <div class="topic-date">{{ date }}</div>
-                    {% for topic in topics %}
-                        <div class="topic-item">{{ topic.title }}</div>
-                    {% endfor %}
-                {% endfor %}
-            {% else %}
-                <div class="topic-date">No previous conversations</div>
-            {% endif %}
+            <!-- Sample conversation history -->
+            <div class="date-header">Today</div>
+            <div class="conversation-item">
+                <div class="conversation-title">Morning Check-in</div>
+                <div class="conversation-preview">I've been feeling anxious about my upcoming presentation...</div>
+            </div>
+            <div class="conversation-item">
+                <div class="conversation-title">Stress Management</div>
+                <div class="conversation-preview">What are some techniques to manage work stress?</div>
+            </div>
+            
+            <div class="date-header">Yesterday</div>
+            <div class="conversation-item">
+                <div class="conversation-title">Sleep Issues</div>
+                <div class="conversation-preview">I've been having trouble falling asleep lately...</div>
+            </div>
+            <div class="conversation-item">
+                <div class="conversation-title">Meditation Practice</div>
+                <div class="conversation-preview">How can I improve my daily meditation routine?</div>
+            </div>
+            
+            <div class="date-header">June 5, 2025</div>
+            <div class="conversation-item">
+                <div class="conversation-title">Relationship Advice</div>
+                <div class="conversation-preview">I'm having difficulties communicating with my partner...</div>
+            </div>
         </div>
         
-        <!-- Chat interface -->
-        <div class="chat-wrapper">
-            <div class="chat-container">
-                <!-- Header -->
-                <div class="header">
-                    <div class="security-indicator">
-                        <span class="lock-icon">🔒</span>
-                        <span>End-to-End Encrypted</span>
-                    </div>
-                    <div>
-                        <a href="/" style="color: white; text-decoration: none;">Logout</a>
-                    </div>
+        <!-- Main chat area -->
+        <div class="chat-container">
+            <div class="chat-header">
+                <div class="chat-title">Mental Health Assistant</div>
+                <div class="header-actions">
+                    <a href="/logout">Logout</a>
                 </div>
-
-                <!-- Chat Area -->
-                <div class="chat-area" id="chatArea">
-                    <div class="message bot-message">
-                        <strong>AI Assistant:</strong> Hello! I'm your mental health companion. How are you feeling today?
-                    </div>
+            </div>
+            
+            <div class="messages-container" id="messagesContainer">
+                <div class="message bot-message">
+                    Hello! I'm your mental health companion. How are you feeling today?
                 </div>
-
-                <!-- Typing Indicator -->
-                <div class="typing-indicator" id="typingIndicator" style="display:none;">
-                    <div class="dot"></div>
-                    <div class="dot"></div>
-                    <div class="dot"></div>
+            </div>
+            
+            <div class="typing-indicator" id="typingIndicator" style="display:none;">
+                <div class="dot"></div>
+                <div class="dot"></div>
+                <div class="dot"></div>
+            </div>
+            
+            <div class="input-area">
+                <div class="input-tools">
+                    <button class="tool-button" title="Record voice">🎤</button>
+                    <button class="tool-button" title="Attach file">📎</button>
                 </div>
-
-                <!-- Input Area -->
-                <div class="input-area">
-                    <div class="input-tools">
-                        <button id="recordButton" class="icon-button" title="Record voice">
-                            🎤
-                        </button>
-                        <label for="fileInput" class="icon-button" title="Attach file">
-                            📎
-                        </label>
-                        <input type="file" id="fileInput" hidden>
-                    </div>
-                    <input type="text" id="messageInput" placeholder="Type your message...">
-                    <button id="sendButton">Send</button>
-                </div>
+                <input type="text" id="messageInput" placeholder="Type your message...">
+                <button id="sendButton">➤</button>
             </div>
         </div>
     </div>
 
     <script>
-        const chatArea = document.getElementById('chatArea');
-        const sendButton = document.getElementById('sendButton');
+        const messagesContainer = document.getElementById('messagesContainer');
         const messageInput = document.getElementById('messageInput');
+        const sendButton = document.getElementById('sendButton');
         const typingIndicator = document.getElementById('typingIndicator');
         
-        // Function to add a message to the chat
-        function addMessage(message, isUser = true) {
-            const div = document.createElement('div');
-            div.classList.add('message');
-            
-            if (isUser) {
-                div.classList.add('user-message');
-                div.innerHTML = `<strong>You:</strong> ${message}`;
-            } else {
-                div.classList.add('bot-message');
-                div.innerHTML = `<strong>AI Assistant:</strong> ${message}`;
-            }
-            
-            chatArea.appendChild(div);
-            chatArea.scrollTop = chatArea.scrollHeight;
-        }
-        
-        // Send message when button is clicked
-        sendButton.addEventListener('click', sendMessage);
-        
-        // Send message when Enter key is pressed
-        messageInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                sendMessage();
-            }
-        });
-        
+        // Send message function
         function sendMessage() {
             const message = messageInput.value.trim();
             if (!message) return;
             
-            // Add user message to chat
+            // Add user message
             addMessage(message, true);
             
             // Clear input
@@ -309,35 +357,80 @@
             
             // Show typing indicator
             typingIndicator.style.display = 'flex';
+            messagesContainer.appendChild(typingIndicator);
+            scrollToBottom();
             
-            // Simulate AI response after a delay
-            setTimeout(function() {
+            // Simulate AI response
+            setTimeout(() => {
                 typingIndicator.style.display = 'none';
                 
-                // Simple responses based on keywords
+                // Generate response based on message content
                 let response;
                 const lowerMessage = message.toLowerCase();
                 
                 if (lowerMessage.includes('sad') || lowerMessage.includes('depress')) {
-                    response = "I'm sorry to hear you're feeling down. Remember that it's okay to have these feelings, and they're temporary. Would you like to talk about what's causing these feelings?";
-                } else if (lowerMessage.includes('anxious') || lowerMessage.includes('worry') || lowerMessage.includes('stress')) {
-                    response = "Anxiety can be challenging. Have you tried any breathing exercises? Taking slow, deep breaths can help calm your nervous system.";
+                    response = "I understand feeling sad can be difficult. Would you like to talk more about what's making you feel this way? Sometimes identifying specific triggers can help us address them better.";
+                } else if (lowerMessage.includes('anxious') || lowerMessage.includes('anxiety') || lowerMessage.includes('stress')) {
+                    response = "Anxiety can be challenging to deal with. Have you tried any breathing exercises? Taking slow, deep breaths for a few minutes can help activate your parasympathetic nervous system and reduce anxiety.";
                 } else if (lowerMessage.includes('happy') || lowerMessage.includes('good') || lowerMessage.includes('great')) {
-                    response = "I'm glad to hear you're feeling positive! What's contributing to your good mood today?";
-                } else if (lowerMessage.includes('help') || lowerMessage.includes('need advice')) {
-                    response = "I'm here to support you. Could you tell me more specifically what you'd like help with?";
+                    response = "I'm glad to hear you're feeling positive! What specific things have contributed to your good mood today? Recognizing these positive factors can help reinforce them.";
+                } else if (lowerMessage.includes('sleep') || lowerMessage.includes('tired') || lowerMessage.includes('insomnia')) {
+                    response = "Sleep issues can significantly impact mental health. Have you established a consistent sleep routine? Going to bed and waking up at the same time daily can help regulate your body's internal clock.";
+                } else if (lowerMessage.includes('help') || lowerMessage.includes('advice')) {
+                    response = "I'm here to support you. To provide the most helpful guidance, could you share more specific details about what you're experiencing?";
                 } else {
-                    response = "Thank you for sharing. How does that make you feel?";
+                    response = "Thank you for sharing that with me. How does this situation make you feel emotionally? Understanding your emotional response can help us work through this together.";
                 }
                 
                 addMessage(response, false);
-            }, 1500);
+            }, 2000);
         }
         
+        // Add message to chat
+        function addMessage(content, isUser) {
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('message');
+            messageDiv.classList.add(isUser ? 'user-message' : 'bot-message');
+            messageDiv.textContent = content;
+            
+            messagesContainer.appendChild(messageDiv);
+            scrollToBottom();
+        }
+        
+        // Scroll to bottom of messages
+        function scrollToBottom() {
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+        
+        // Event listeners
+        sendButton.addEventListener('click', sendMessage);
+        
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+        
         // Handle new conversation button
-        document.querySelector('.new-topic-btn').addEventListener('click', function() {
-            chatArea.innerHTML = '';
+        document.querySelector('.new-chat-btn').addEventListener('click', () => {
+            // Clear chat history
+            messagesContainer.innerHTML = '';
+            
+            // Add welcome message
             addMessage("Hello! I'm your mental health companion. How are you feeling today?", false);
+        });
+        
+        // Handle conversation item clicks
+        document.querySelectorAll('.conversation-item').forEach(item => {
+            item.addEventListener('click', () => {
+                // In a real app, this would load the selected conversation
+                const title = item.querySelector('.conversation-title').textContent;
+                document.querySelector('.chat-title').textContent = title;
+                
+                // For demo purposes, just clear and add a message
+                messagesContainer.innerHTML = '';
+                addMessage(`Let's continue our conversation about "${title}". How are you feeling about this today?`, false);
+            });
         });
     </script>
 </body>
