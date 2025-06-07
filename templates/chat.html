@@ -91,6 +91,32 @@
             background-color: #1565C0;
         }
         
+        .talk-to-medic-btn {
+            margin: 0 16px 16px;
+            padding: 8px;
+            background-color: #D32F2F;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            text-align: center;
+            transition: background-color 0.2s;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .talk-to-medic-btn:hover {
+            background-color: #B71C1C;
+        }
+        
+        .talk-to-medic-btn .icon {
+            margin-right: 8px;
+            font-size: 18px;
+        }
+        
         /* Main chat area */
         .main-content {
             margin-left: 0;
@@ -122,9 +148,23 @@
             border-bottom: 1px solid #e0e0e0;
         }
         
+        .chat-header.medical {
+            background-color: #D32F2F;
+        }
+        
         .chat-title {
             font-weight: bold;
             font-size: 16px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .chat-title .status-dot {
+            width: 10px;
+            height: 10px;
+            background-color: #4CAF50;
+            border-radius: 50%;
+            margin-right: 8px;
         }
         
         .header-actions {
@@ -182,6 +222,13 @@
         
         .bot-message {
             background-color: #f1f1f1;
+            color: #000;
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+        }
+        
+        .medic-message {
+            background-color: #FFEBEE;
             color: #000;
             align-self: flex-start;
             border-bottom-left-radius: 4px;
@@ -278,8 +325,86 @@
             font-size: 14px;
         }
         
+        #sendButton.medical {
+            background-color: #D32F2F;
+        }
+        
         #sendButton:hover {
             background-color: #1565C0;
+        }
+        
+        #sendButton.medical:hover {
+            background-color: #B71C1C;
+        }
+        
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 100;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-content {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 500px;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .modal-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #0D47A1;
+        }
+        
+        .close-button {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #666;
+        }
+        
+        .modal-body {
+            margin-bottom: 20px;
+        }
+        
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+        }
+        
+        .modal-button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+        
+        .cancel-button {
+            background-color: #f1f1f1;
+            color: #333;
+        }
+        
+        .confirm-button {
+            background-color: #D32F2F;
+            color: white;
         }
         
         /* Responsive adjustments */
@@ -327,6 +452,7 @@
         <div class="sidebar">
             <div class="sidebar-header">Conversation History</div>
             <button class="new-chat-btn">+ New Conversation</button>
+            <button class="talk-to-medic-btn" id="talkToMedicBtn"><span class="icon">👨‍⚕️</span> Talk to a Medical Professional</button>
             
             <!-- Sample conversation history -->
             <div class="date-header">Today</div>
@@ -359,7 +485,7 @@
         <!-- Main chat area -->
         <div class="main-content">
             <div class="chat-container">
-                <div class="chat-header">
+                <div class="chat-header" id="chatHeader">
                     <div class="chat-title">Mental Health Assistant</div>
                     <div class="header-actions">
                         <a href="/logout">Logout</a>
@@ -390,6 +516,30 @@
             </div>
         </div>
     </div>
+    
+    <!-- Medical Professional Modal -->
+    <div id="medicModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Talk to a Medical Professional</div>
+                <button class="close-button" id="closeModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>You are about to start a conversation with a licensed medical professional. This service connects you with real healthcare providers who can offer guidance on mental health concerns.</p>
+                <p>Please note:</p>
+                <ul>
+                    <li>This is not a substitute for emergency services. If you're experiencing a crisis, please call emergency services immediately.</li>
+                    <li>Your conversation will be encrypted and confidential.</li>
+                    <li>Wait times may vary based on professional availability.</li>
+                </ul>
+                <p>Would you like to proceed?</p>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-button cancel-button" id="cancelMedic">Cancel</button>
+                <button class="modal-button confirm-button" id="confirmMedic">Connect Now</button>
+            </div>
+        </div>
+    </div>
 
     <script>
         // Store user name for use in messages
@@ -399,6 +549,14 @@
         const messageInput = document.getElementById('messageInput');
         const sendButton = document.getElementById('sendButton');
         const typingIndicator = document.getElementById('typingIndicator');
+        const chatHeader = document.getElementById('chatHeader');
+        const talkToMedicBtn = document.getElementById('talkToMedicBtn');
+        const medicModal = document.getElementById('medicModal');
+        const closeModal = document.getElementById('closeModal');
+        const cancelMedic = document.getElementById('cancelMedic');
+        const confirmMedic = document.getElementById('confirmMedic');
+        
+        let isMedicalChat = false;
         
         // Send message function
         function sendMessage() {
@@ -416,33 +574,41 @@
             messagesContainer.appendChild(typingIndicator);
             scrollToBottom();
             
-            // Simulate AI response
+            // Simulate response
             setTimeout(() => {
                 typingIndicator.style.display = 'none';
                 
-                // Generate response based on message content
-                let response;
-                const lowerMessage = message.toLowerCase();
-                
-                if (lowerMessage.includes('sad') || lowerMessage.includes('depress')) {
-                    response = `I understand feeling sad can be difficult, ${userName}. Would you like to talk more about what's making you feel this way?`;
-                } else if (lowerMessage.includes('anxious') || lowerMessage.includes('anxiety') || lowerMessage.includes('stress')) {
-                    response = `Anxiety can be challenging, ${userName}. Have you tried any breathing exercises?`;
-                } else if (lowerMessage.includes('happy') || lowerMessage.includes('good') || lowerMessage.includes('great')) {
-                    response = `I'm glad to hear you're feeling positive, ${userName}! What specific things have contributed to your good mood today?`;
-                } else if (lowerMessage.includes('sleep') || lowerMessage.includes('tired')) {
-                    response = `Sleep issues can significantly impact mental health, ${userName}. Have you established a consistent sleep routine?`;
-                } else if (lowerMessage.includes('help') || lowerMessage.includes('advice')) {
-                    response = `I'm here to support you, ${userName}. Could you share more specific details about what you're experiencing?`;
+                if (isMedicalChat) {
+                    // Medical professional response
+                    let response = `Thank you for sharing that, ${userName}. As a medical professional, I'd like to understand more about your situation. Could you provide more details about your symptoms and how long you've been experiencing them?`;
+                    addMedicMessage(response);
                 } else {
-                    response = `Thank you for sharing that with me, ${userName}. How does this situation make you feel emotionally?`;
+                    // AI response
+                    let response;
+                    const lowerMessage = message.toLowerCase();
+                    
+                    if (lowerMessage.includes('sad') || lowerMessage.includes('depress')) {
+                        response = `I understand feeling sad can be difficult, ${userName}. Would you like to talk more about what's making you feel this way?`;
+                    } else if (lowerMessage.includes('anxious') || lowerMessage.includes('anxiety') || lowerMessage.includes('stress')) {
+                        response = `Anxiety can be challenging, ${userName}. Have you tried any breathing exercises?`;
+                    } else if (lowerMessage.includes('happy') || lowerMessage.includes('good') || lowerMessage.includes('great')) {
+                        response = `I'm glad to hear you're feeling positive, ${userName}! What specific things have contributed to your good mood today?`;
+                    } else if (lowerMessage.includes('sleep') || lowerMessage.includes('tired')) {
+                        response = `Sleep issues can significantly impact mental health, ${userName}. Have you established a consistent sleep routine?`;
+                    } else if (lowerMessage.includes('help') || lowerMessage.includes('advice')) {
+                        response = `I'm here to support you, ${userName}. Could you share more specific details about what you're experiencing?`;
+                    } else if (lowerMessage.includes('doctor') || lowerMessage.includes('medic') || lowerMessage.includes('professional')) {
+                        response = `If you'd like to speak with a medical professional, you can click the "Talk to a Medical Professional" button on the left sidebar. Would you like me to help you with anything else in the meantime?`;
+                    } else {
+                        response = `Thank you for sharing that with me, ${userName}. How does this situation make you feel emotionally?`;
+                    }
+                    
+                    addBotMessage(response);
                 }
-                
-                addMessage(response, false);
             }, 1500);
         }
         
-        // Add message to chat
+        // Add user message to chat
         function addMessage(content, isUser) {
             const messageDiv = document.createElement('div');
             messageDiv.classList.add('message');
@@ -453,9 +619,63 @@
             scrollToBottom();
         }
         
+        // Add bot message to chat
+        function addBotMessage(content) {
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('message', 'bot-message');
+            messageDiv.textContent = content;
+            
+            messagesContainer.appendChild(messageDiv);
+            scrollToBottom();
+        }
+        
+        // Add medical professional message to chat
+        function addMedicMessage(content) {
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('message', 'medic-message');
+            messageDiv.textContent = content;
+            
+            messagesContainer.appendChild(messageDiv);
+            scrollToBottom();
+        }
+        
         // Scroll to bottom of messages
         function scrollToBottom() {
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+        
+        // Switch to medical professional chat
+        function switchToMedicalChat() {
+            isMedicalChat = true;
+            
+            // Update UI
+            chatHeader.classList.add('medical');
+            sendButton.classList.add('medical');
+            
+            // Update chat title
+            const chatTitle = document.querySelector('.chat-title');
+            chatTitle.innerHTML = '<div class="status-dot"></div>Dr. Sarah Johnson';
+            
+            // Clear chat and add welcome message
+            messagesContainer.innerHTML = '';
+            addMedicMessage(`Hello ${userName}, I'm Dr. Sarah Johnson, a licensed mental health professional. How can I assist you today?`);
+        }
+        
+        // Switch back to AI chat
+        function switchToAIChat() {
+            isMedicalChat = false;
+            
+            // Update UI
+            chatHeader.classList.remove('medical');
+            sendButton.classList.remove('medical');
+            
+            // Update chat title
+            const chatTitle = document.querySelector('.chat-title');
+            chatTitle.textContent = 'Mental Health Assistant';
+            
+            // Clear chat and add welcome message
+            messagesContainer.innerHTML = '';
+            addBotMessage(`Hello ${userName}! I'm your mental health companion. How are you feeling today?`);
         }
         
         // Event listeners
@@ -469,23 +689,61 @@
         
         // Handle new conversation button
         document.querySelector('.new-chat-btn').addEventListener('click', () => {
-            // Clear chat history
-            messagesContainer.innerHTML = '';
-            
-            // Add welcome message
-            addMessage(`Hello ${userName}! I'm your mental health companion. How are you feeling today?`, false);
+            if (isMedicalChat) {
+                // If in medical chat, switch back to AI
+                switchToAIChat();
+            } else {
+                // Clear chat history
+                messagesContainer.innerHTML = '';
+                
+                // Add welcome message
+                addBotMessage(`Hello ${userName}! I'm your mental health companion. How are you feeling today?`);
+            }
+        });
+        
+        // Handle talk to medic button
+        talkToMedicBtn.addEventListener('click', () => {
+            medicModal.style.display = 'flex';
+        });
+        
+        // Handle modal close button
+        closeModal.addEventListener('click', () => {
+            medicModal.style.display = 'none';
+        });
+        
+        // Handle cancel button
+        cancelMedic.addEventListener('click', () => {
+            medicModal.style.display = 'none';
+        });
+        
+        // Handle confirm button
+        confirmMedic.addEventListener('click', () => {
+            medicModal.style.display = 'none';
+            switchToMedicalChat();
+        });
+        
+        // Close modal if clicked outside
+        window.addEventListener('click', (e) => {
+            if (e.target === medicModal) {
+                medicModal.style.display = 'none';
+            }
         });
         
         // Handle conversation item clicks
         document.querySelectorAll('.conversation-item').forEach(item => {
             item.addEventListener('click', () => {
+                // Switch back to AI chat if in medical chat
+                if (isMedicalChat) {
+                    switchToAIChat();
+                }
+                
                 // In a real app, this would load the selected conversation
                 const title = item.querySelector('.conversation-title').textContent;
                 document.querySelector('.chat-title').textContent = title;
                 
                 // For demo purposes, just clear and add a message
                 messagesContainer.innerHTML = '';
-                addMessage(`Let's continue our conversation about "${title}", ${userName}. How are you feeling about this today?`, false);
+                addBotMessage(`Let's continue our conversation about "${title}", ${userName}. How are you feeling about this today?`);
             });
         });
     </script>

@@ -70,6 +70,7 @@ class User(db.Model):
     password = db.Column(db.String(255), nullable=False)
     public_key = db.Column(db.Text, nullable=True)
     private_key = db.Column(db.Text, nullable=True)
+    is_medical_professional = db.Column(db.Boolean, default=False)
 
     def set_password(self, password):
         self.password = generate_password_hash(password)
@@ -379,6 +380,10 @@ def initialize_app():
     except Exception as e:
         print(f"Failed to initialize application: {str(e)}")
         raise
+
+# Register blueprints
+from routes.medical import medical_bp
+app.register_blueprint(medical_bp)
 
 # Initialize database tables
 initialize_app()
