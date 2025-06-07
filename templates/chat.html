@@ -363,13 +363,13 @@
                     <div class="chat-title">Mental Health Assistant</div>
                     <div class="header-actions">
                         <a href="/logout">Logout</a>
-                        <div class="profile-icon">U</div>
+                        <div class="profile-icon">{{ user_name[0]|upper }}</div>
                     </div>
                 </div>
                 
                 <div class="messages-container" id="messagesContainer">
                     <div class="message bot-message">
-                        Hello! I'm your mental health companion. How are you feeling today?
+                        Hello {{ user_name }}! I'm your mental health companion. How are you feeling today?
                     </div>
                 </div>
                 
@@ -392,6 +392,9 @@
     </div>
 
     <script>
+        // Store user name for use in messages
+        const userName = "{{ user_name }}";
+        
         const messagesContainer = document.getElementById('messagesContainer');
         const messageInput = document.getElementById('messageInput');
         const sendButton = document.getElementById('sendButton');
@@ -422,17 +425,17 @@
                 const lowerMessage = message.toLowerCase();
                 
                 if (lowerMessage.includes('sad') || lowerMessage.includes('depress')) {
-                    response = "I understand feeling sad can be difficult. Would you like to talk more about what's making you feel this way?";
+                    response = `I understand feeling sad can be difficult, ${userName}. Would you like to talk more about what's making you feel this way?`;
                 } else if (lowerMessage.includes('anxious') || lowerMessage.includes('anxiety') || lowerMessage.includes('stress')) {
-                    response = "Anxiety can be challenging. Have you tried any breathing exercises?";
+                    response = `Anxiety can be challenging, ${userName}. Have you tried any breathing exercises?`;
                 } else if (lowerMessage.includes('happy') || lowerMessage.includes('good') || lowerMessage.includes('great')) {
-                    response = "I'm glad to hear you're feeling positive! What specific things have contributed to your good mood today?";
+                    response = `I'm glad to hear you're feeling positive, ${userName}! What specific things have contributed to your good mood today?`;
                 } else if (lowerMessage.includes('sleep') || lowerMessage.includes('tired')) {
-                    response = "Sleep issues can significantly impact mental health. Have you established a consistent sleep routine?";
+                    response = `Sleep issues can significantly impact mental health, ${userName}. Have you established a consistent sleep routine?`;
                 } else if (lowerMessage.includes('help') || lowerMessage.includes('advice')) {
-                    response = "I'm here to support you. Could you share more specific details about what you're experiencing?";
+                    response = `I'm here to support you, ${userName}. Could you share more specific details about what you're experiencing?`;
                 } else {
-                    response = "Thank you for sharing that with me. How does this situation make you feel emotionally?";
+                    response = `Thank you for sharing that with me, ${userName}. How does this situation make you feel emotionally?`;
                 }
                 
                 addMessage(response, false);
@@ -470,7 +473,7 @@
             messagesContainer.innerHTML = '';
             
             // Add welcome message
-            addMessage("Hello! I'm your mental health companion. How are you feeling today?", false);
+            addMessage(`Hello ${userName}! I'm your mental health companion. How are you feeling today?`, false);
         });
         
         // Handle conversation item clicks
@@ -482,7 +485,7 @@
                 
                 // For demo purposes, just clear and add a message
                 messagesContainer.innerHTML = '';
-                addMessage(`Let's continue our conversation about "${title}". How are you feeling about this today?`, false);
+                addMessage(`Let's continue our conversation about "${title}", ${userName}. How are you feeling about this today?`, false);
             });
         });
     </script>

@@ -65,6 +65,7 @@ class User(db.Model):
     __tablename__ = 'users'  # Explicit table name to avoid issues
     
     id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=True)
     email = db.Column(db.String(120), unique=True, nullable=False)
     password = db.Column(db.String(255), nullable=False)
     public_key = db.Column(db.Text, nullable=True)
@@ -230,6 +231,7 @@ def login():
 def register():
     if request.method == 'POST':
         try:
+            name = request.form.get('name', '').strip()
             email = request.form.get('email', '').strip()
             password = request.form.get('password', '').strip()
             
@@ -243,6 +245,7 @@ def register():
             private_key = public.PrivateKey.generate()
             encrypted_private = fernet.encrypt(bytes(private_key))
             user = User(
+                name=name,
                 email=email,
                 public_key=base64.b64encode(bytes(private_key.public_key)).decode(),
                 private_key=base64.b64encode(encrypted_private).decode()
@@ -270,6 +273,10 @@ def chat():
         # Try to get the JWT identity
         user_id = get_jwt_identity()
         
+        # Get user information
+        user = User.query.get(user_id)
+        user_name = user.name if user and user.name else user.email.split('@')[0]
+        
         # Get user topics grouped by date
         topics_by_date = {}
         try:
@@ -282,7 +289,7 @@ def chat():
         except Exception as e:
             print(f"Error fetching topics: {str(e)}")
         
-        return render_template('chat.html', user_id=user_id, topics_by_date=topics_by_date)
+        return render_template('chat.html', user_id=user_id, user_name=user_name, topics_by_date=topics_by_date)
     except Exception as e:
         print(f"Error accessing chat: {str(e)}")
         return render_template('chat.html')
