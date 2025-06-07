@@ -20,6 +20,7 @@ from sqlalchemy.exc import SQLAlchemyError
 # Apply eventlet monkey patch at the very beginning
 import eventlet
 eventlet.monkey_patch()
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 
 # Load environment variables
 load_dotenv()
@@ -145,33 +146,39 @@ def get_db_session():
 
 # Improved OpenRouter Integration
 def chat_with_openrouter(message):
-    """Enhanced with better error handling and timeout"""
     try:
         url = "https://openrouter.ai/api/v1/chat/completions"
-
         headers = {
-            "Authorization": f"Bearer {os.environ.get('OPENROUTER_API_KEY')}",
+            "Authorization": f"Bearer {OPENROUTER_API_KEY}",
             "Content-Type": "application/json"
         }
 
-        system_instruction = """You are a friendly, compassionate AI assistant trained in Cognitive Behavioral Therapy (CBT)..."""
+        system_instruction = (
+            "You are a friendly, compassionate AI assistant trained in Cognitive Behavioral Therapy (CBT) "
+            " You help users improve their mental and emotional well-being. "
+            "Only respond to questions related to health and mental health. If a user asks anything unrelated, "
+            "gently redirect them back to mental wellness topics. Avoid topics such as sports, politics, or technology."
+        )
 
         data = {
-            "model": "google/gemini-2.5-pro-preview",
+            "model": "deepseek/deepseek-r1-0528-qwen3-8b",
             "messages": [
                 {"role": "system", "content": system_instruction},
                 {"role": "user", "content": message}
-            ],
-            "temperature": 0.7,
-            "max_tokens": 500
+            ]
         }
 
-        response = requests.post(url, headers=headers, json=data, timeout=30)
-        response.raise_for_status()
-        return response.json()["choices"][0]["message"]["content"]
+        response = requests.post(url, headers=headers, json=data)
+        if response.status_code == 200:
+            return response.json()["choices"][0]["message"]["content"]
+        else:
+            print("OpenRouter Error:", response.text)
+            return "Sorry, I couldn't process your message right now."
+
     except Exception as e:
-        print(f"OpenRouter Error: {str(e)}")
+        print(f"OpenRouter API Error: {e}")
         return "Sorry, I couldn't process your message right now."
+
 
 # Routes
 @app.route('/')
