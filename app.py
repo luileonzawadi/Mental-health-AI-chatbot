@@ -14,8 +14,10 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from dotenv import load_dotenv
 from datetime import datetime, timedelta
 import mimetypes
-import eventlet
 from sqlalchemy.exc import SQLAlchemyError
+
+# Apply eventlet monkey patch at the very beginning
+import eventlet
 eventlet.monkey_patch()
 
 # Load environment variables
@@ -286,8 +288,10 @@ def initialize_app():
         print(f"Failed to initialize application: {str(e)}")
         raise
 
+# Initialize database tables
+initialize_app()
+
 if __name__ == '__main__':
-    initialize_app()
     port = int(os.environ.get("PORT", 5000))
     socketio.run(app, 
                 host='0.0.0.0', 
