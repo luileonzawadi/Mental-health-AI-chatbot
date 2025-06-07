@@ -12,11 +12,16 @@
             background-color: #f0f2f5;
             height: 100vh;
             overflow: hidden;
+            display: flex;
+            justify-content: center;
         }
         
         .app-container {
             display: flex;
             height: 100vh;
+            width: 90%;
+            max-width: 1400px;
+            margin: 0 auto;
         }
         
         /* Sidebar styles */
@@ -92,17 +97,24 @@
         }
         
         /* Main chat area */
-        .chat-container {
+        .chat-wrapper {
             flex: 1;
             display: flex;
-            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .chat-container {
+            width: 100%;
+            max-width: 800px;
+            height: 90%;
             background-color: #fff;
-            max-width: 950px;
-            margin: 20px auto;
-            height: calc(100% - 40px);
             box-shadow: 0 2px 20px rgba(0,0,0,0.1);
             border-radius: 24px;
             overflow: hidden;
+            display: flex;
+            flex-direction: column;
         }
         
         .chat-header {
@@ -252,6 +264,12 @@
         }
         
         /* Responsive adjustments */
+        @media (max-width: 992px) {
+            .app-container {
+                width: 100%;
+            }
+        }
+        
         @media (max-width: 768px) {
             .sidebar {
                 width: 240px;
@@ -277,10 +295,12 @@
                 border-radius: 0;
             }
             
+            .chat-wrapper {
+                padding: 10px;
+            }
+            
             .chat-container {
-                width: 100%;
-                margin: 10px auto;
-                height: calc(100% - 20px);
+                height: 100%;
             }
         }
     </style>
@@ -321,33 +341,35 @@
         </div>
         
         <!-- Main chat area -->
-        <div class="chat-container">
-            <div class="chat-header">
-                <div class="chat-title">Mental Health Assistant</div>
-                <div class="header-actions">
-                    <a href="/logout">Logout</a>
+        <div class="chat-wrapper">
+            <div class="chat-container">
+                <div class="chat-header">
+                    <div class="chat-title">Mental Health Assistant</div>
+                    <div class="header-actions">
+                        <a href="/logout">Logout</a>
+                    </div>
                 </div>
-            </div>
-            
-            <div class="messages-container" id="messagesContainer">
-                <div class="message bot-message">
-                    Hello! I'm your mental health companion. How are you feeling today?
+                
+                <div class="messages-container" id="messagesContainer">
+                    <div class="message bot-message">
+                        Hello! I'm your mental health companion. How are you feeling today?
+                    </div>
                 </div>
-            </div>
-            
-            <div class="typing-indicator" id="typingIndicator" style="display:none;">
-                <div class="dot"></div>
-                <div class="dot"></div>
-                <div class="dot"></div>
-            </div>
-            
-            <div class="input-area">
-                <div class="input-tools">
-                    <button class="tool-button" title="Record voice">🎤</button>
-                    <button class="tool-button" title="Attach file">📎</button>
+                
+                <div class="typing-indicator" id="typingIndicator" style="display:none;">
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                    <div class="dot"></div>
                 </div>
-                <input type="text" id="messageInput" placeholder="Type your message...">
-                <button id="sendButton">➤</button>
+                
+                <div class="input-area">
+                    <div class="input-tools">
+                        <button class="tool-button" title="Record voice">🎤</button>
+                        <button class="tool-button" title="Attach file">📎</button>
+                    </div>
+                    <input type="text" id="messageInput" placeholder="Type your message...">
+                    <button id="sendButton">➤</button>
+                </div>
             </div>
         </div>
     </div>
