@@ -203,8 +203,8 @@ def login():
             <meta http-equiv="refresh" content="1;url=/chat">
             <style>
                 body { font-family: Arial; text-align: center; margin-top: 50px; }
-                h1 { color: #4CAF50; }
-                a { color: #4CAF50; }
+                h1 { color: #2196F3; }
+                a { color: #2196F3; }
             </style>
         </head>
         <body>
@@ -266,7 +266,26 @@ def register():
 # Chat interface route
 @app.route('/chat')
 def chat():
-    return render_template('chat.html')
+    try:
+        # Try to get the JWT identity
+        user_id = get_jwt_identity()
+        
+        # Get user topics grouped by date
+        topics_by_date = {}
+        try:
+            topics = Topic.query.filter_by(user_id=user_id).order_by(Topic.created_at.desc()).all()
+            for topic in topics:
+                date_str = topic.created_at.strftime('%Y-%m-%d')
+                if date_str not in topics_by_date:
+                    topics_by_date[date_str] = []
+                topics_by_date[date_str].append(topic)
+        except Exception as e:
+            print(f"Error fetching topics: {str(e)}")
+        
+        return render_template('chat.html', user_id=user_id, topics_by_date=topics_by_date)
+    except Exception as e:
+        print(f"Error accessing chat: {str(e)}")
+        return render_template('chat.html')
 
 # Logout route
 @app.route('/logout')
