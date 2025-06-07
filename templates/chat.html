@@ -17,7 +17,6 @@
         .app-container {
             display: flex;
             height: 100vh;
-            width: 100%;
         }
         
         /* Sidebar styles */
@@ -30,9 +29,6 @@
             flex-direction: column;
             overflow-y: auto;
             box-shadow: 2px 0 10px rgba(0,0,0,0.1);
-            position: fixed;
-            left: 0;
-            top: 0;
         }
         
         .sidebar-header {
@@ -97,7 +93,7 @@
         
         /* Main chat area */
         .main-content {
-            margin-left: 250px;
+            margin-left: 0;
             width: calc(100% - 250px);
             height: 100vh;
             display: flex;
@@ -272,7 +268,6 @@
             }
             
             .main-content {
-                margin-left: 200px;
                 width: calc(100% - 200px);
             }
             
@@ -286,7 +281,6 @@
             .sidebar {
                 width: 100%;
                 height: 30vh;
-                position: relative;
             }
             
             .main-content {
