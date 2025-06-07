@@ -116,8 +116,20 @@ def create_db_tables():
     """Ensure database tables are created properly"""
     with app.app_context():
         try:
-            db.create_all()
-            print("Database tables created successfully")
+            # Check if we're using PostgreSQL
+            if 'postgresql' in app.config['SQLALCHEMY_DATABASE_URI']:
+                # First ensure the schema exists
+                db.session.execute(db.text("CREATE SCHEMA IF NOT EXISTS public"))
+                db.session.commit()
+                
+                # Force create all tables
+                print("Creating database tables...")
+                db.create_all()
+                print("Database tables created successfully")
+            else:
+                # For SQLite or other databases
+                db.create_all()
+                print("Database tables created successfully")
         except Exception as e:
             print(f"Error creating database tables: {str(e)}")
             raise
@@ -266,6 +278,7 @@ def internal_error(error):
 # Application Startup
 def initialize_app():
     try:
+        # Always create tables on startup
         create_db_tables()
         print("Application initialization complete")
         print(f"Database URL: {app.config['SQLALCHEMY_DATABASE_URI']}")
