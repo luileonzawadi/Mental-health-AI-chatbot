@@ -1,95 +1,218 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Chat - Mental Health AI Chatbot</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure Mental Health Companion</title>
     <style>
         body {
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 0;
+            background-color: #f5f5f5;
             height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .chat-container {
+            width: 90%;
+            max-width: 800px;
+            height: 80vh;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
             display: flex;
             flex-direction: column;
         }
+        
         .header {
+            padding: 15px;
             background-color: #4CAF50;
             color: white;
-            padding: 10px 20px;
+            border-top-left-radius: 10px;
+            border-top-right-radius: 10px;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
-        .header a {
-            color: white;
-            text-decoration: none;
+        
+        .security-indicator {
+            display: flex;
+            align-items: center;
+            font-size: 14px;
         }
-        .chat-container {
+        
+        .lock-icon {
+            margin-right: 5px;
+        }
+        
+        .chat-area {
             flex: 1;
+            padding: 15px;
+            overflow-y: auto;
             display: flex;
             flex-direction: column;
-            padding: 20px;
-            overflow-y: auto;
         }
+        
         .message {
             margin-bottom: 10px;
             padding: 10px;
             border-radius: 5px;
-            max-width: 70%;
+            max-width: 80%;
+            word-wrap: break-word;
         }
+        
         .user-message {
             background-color: #e3f2fd;
             align-self: flex-end;
-            margin-left: auto;
         }
+        
         .bot-message {
             background-color: #f1f1f1;
             align-self: flex-start;
         }
-        .input-area {
+        
+        .typing-indicator {
             display: flex;
-            padding: 10px 20px;
-            border-top: 1px solid #ddd;
+            padding: 10px;
+            align-items: center;
         }
+        
+        .dot {
+            width: 8px;
+            height: 8px;
+            background-color: #999;
+            border-radius: 50%;
+            margin: 0 3px;
+            animation: bounce 1.5s infinite;
+        }
+        
+        .dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+        
+        .dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+        
+        @keyframes bounce {
+            0%, 60%, 100% {
+                transform: translateY(0);
+            }
+            30% {
+                transform: translateY(-5px);
+            }
+        }
+        
+        .input-area {
+            padding: 15px;
+            display: flex;
+            border-top: 1px solid #eee;
+        }
+        
+        .input-tools {
+            display: flex;
+            margin-right: 10px;
+        }
+        
+        .icon-button {
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            margin-right: 5px;
+        }
+        
         #messageInput {
             flex: 1;
             padding: 10px;
             border: 1px solid #ddd;
-            border-radius: 4px;
+            border-radius: 5px;
+            margin-right: 10px;
         }
+        
         #sendButton {
-            padding: 10px 20px;
+            padding: 10px 15px;
             background-color: #4CAF50;
             color: white;
             border: none;
-            border-radius: 4px;
-            margin-left: 10px;
+            border-radius: 5px;
             cursor: pointer;
         }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h2>Mental Health AI Chatbot</h2>
-        <a href="/">Logout</a>
-    </div>
-    
-    <div class="chat-container" id="chatContainer">
-        <div class="message bot-message">
-            Hello! I'm your mental health companion. How are you feeling today?
+    <div class="chat-container">
+        <!-- Header -->
+        <div class="header">
+            <div class="security-indicator">
+                <span class="lock-icon">🔒</span>
+                <span>End-to-End Encrypted</span>
+            </div>
+            <div>
+                <a href="/" style="color: white; text-decoration: none;">Logout</a>
+            </div>
         </div>
-    </div>
-    
-    <div class="input-area">
-        <input type="text" id="messageInput" placeholder="Type your message...">
-        <button id="sendButton">Send</button>
+
+        <!-- Chat Area -->
+        <div class="chat-area" id="chatArea">
+            <div class="message bot-message">
+                <strong>AI Assistant:</strong> Hello! I'm your mental health companion. How are you feeling today?
+            </div>
+        </div>
+
+        <!-- Typing Indicator -->
+        <div class="typing-indicator" id="typingIndicator" style="display:none;">
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+        </div>
+
+        <!-- Input Area -->
+        <div class="input-area">
+            <div class="input-tools">
+                <button id="recordButton" class="icon-button" title="Record voice">
+                    🎤
+                </button>
+                <label for="fileInput" class="icon-button" title="Attach file">
+                    📎
+                </label>
+                <input type="file" id="fileInput" hidden>
+            </div>
+            <input type="text" id="messageInput" placeholder="Type your message...">
+            <button id="sendButton">Send</button>
+        </div>
     </div>
 
     <script>
-        const chatContainer = document.getElementById('chatContainer');
-        const messageInput = document.getElementById('messageInput');
+        const chatArea = document.getElementById('chatArea');
         const sendButton = document.getElementById('sendButton');
+        const messageInput = document.getElementById('messageInput');
+        const typingIndicator = document.getElementById('typingIndicator');
         
+        // Function to add a message to the chat
+        function addMessage(message, isUser = true) {
+            const div = document.createElement('div');
+            div.classList.add('message');
+            
+            if (isUser) {
+                div.classList.add('user-message');
+                div.innerHTML = `<strong>You:</strong> ${message}`;
+            } else {
+                div.classList.add('bot-message');
+                div.innerHTML = `<strong>AI Assistant:</strong> ${message}`;
+            }
+            
+            chatArea.appendChild(div);
+            chatArea.scrollTop = chatArea.scrollHeight;
+        }
+        
+        // Send message when button is clicked
         sendButton.addEventListener('click', sendMessage);
+        
+        // Send message when Enter key is pressed
         messageInput.addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 sendMessage();
@@ -100,26 +223,37 @@
             const message = messageInput.value.trim();
             if (!message) return;
             
-            // Add user message
-            const userDiv = document.createElement('div');
-            userDiv.className = 'message user-message';
-            userDiv.textContent = message;
-            chatContainer.appendChild(userDiv);
+            // Add user message to chat
+            addMessage(message, true);
             
             // Clear input
             messageInput.value = '';
             
-            // Scroll to bottom
-            chatContainer.scrollTop = chatContainer.scrollHeight;
+            // Show typing indicator
+            typingIndicator.style.display = 'flex';
             
-            // Simulate bot response (replace with actual API call)
-            setTimeout(() => {
-                const botDiv = document.createElement('div');
-                botDiv.className = 'message bot-message';
-                botDiv.textContent = "I understand how you're feeling. Can you tell me more about that?";
-                chatContainer.appendChild(botDiv);
-                chatContainer.scrollTop = chatContainer.scrollHeight;
-            }, 1000);
+            // Simulate AI response after a delay
+            setTimeout(function() {
+                typingIndicator.style.display = 'none';
+                
+                // Simple responses based on keywords
+                let response;
+                const lowerMessage = message.toLowerCase();
+                
+                if (lowerMessage.includes('sad') || lowerMessage.includes('depress')) {
+                    response = "I'm sorry to hear you're feeling down. Remember that it's okay to have these feelings, and they're temporary. Would you like to talk about what's causing these feelings?";
+                } else if (lowerMessage.includes('anxious') || lowerMessage.includes('worry') || lowerMessage.includes('stress')) {
+                    response = "Anxiety can be challenging. Have you tried any breathing exercises? Taking slow, deep breaths can help calm your nervous system.";
+                } else if (lowerMessage.includes('happy') || lowerMessage.includes('good') || lowerMessage.includes('great')) {
+                    response = "I'm glad to hear you're feeling positive! What's contributing to your good mood today?";
+                } else if (lowerMessage.includes('help') || lowerMessage.includes('need advice')) {
+                    response = "I'm here to support you. Could you tell me more specifically what you'd like help with?";
+                } else {
+                    response = "Thank you for sharing. How does that make you feel?";
+                }
+                
+                addMessage(response, false);
+            }, 1500);
         }
     </script>
 </body>

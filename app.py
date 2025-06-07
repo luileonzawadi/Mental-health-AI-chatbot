@@ -203,7 +203,8 @@ def login():
             <meta http-equiv="refresh" content="1;url=/chat">
             <style>
                 body { font-family: Arial; text-align: center; margin-top: 50px; }
-                h1 { color: green; }
+                h1 { color: #4CAF50; }
+                a { color: #4CAF50; }
             </style>
         </head>
         <body>
