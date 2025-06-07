@@ -2,9 +2,148 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Secure Mental Health Companion</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .chat-container {
+            width: 90%;
+            max-width: 800px;
+            height: 80vh;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .header {
+            padding: 15px;
+            background-color: #4CAF50;
+            color: white;
+            border-top-left-radius: 10px;
+            border-top-right-radius: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .security-indicator {
+            display: flex;
+            align-items: center;
+            font-size: 14px;
+        }
+        
+        .lock-icon {
+            margin-right: 5px;
+        }
+        
+        .chat-area {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .message {
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            max-width: 80%;
+            word-wrap: break-word;
+        }
+        
+        .user-message {
+            background-color: #e3f2fd;
+            align-self: flex-end;
+        }
+        
+        .bot-message {
+            background-color: #f1f1f1;
+            align-self: flex-start;
+        }
+        
+        .typing-indicator {
+            display: flex;
+            padding: 10px;
+            align-items: center;
+        }
+        
+        .dot {
+            width: 8px;
+            height: 8px;
+            background-color: #999;
+            border-radius: 50%;
+            margin: 0 3px;
+            animation: bounce 1.5s infinite;
+        }
+        
+        .dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+        
+        .dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+        
+        @keyframes bounce {
+            0%, 60%, 100% {
+                transform: translateY(0);
+            }
+            30% {
+                transform: translateY(-5px);
+            }
+        }
+        
+        .input-area {
+            padding: 15px;
+            display: flex;
+            border-top: 1px solid #eee;
+        }
+        
+        .input-tools {
+            display: flex;
+            margin-right: 10px;
+        }
+        
+        .icon-button {
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            margin-right: 5px;
+        }
+        
+        #messageInput {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-right: 10px;
+        }
+        
+        #sendButton {
+            padding: 10px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+    </style>
 </head>
 <body>
     <div class="chat-container">
@@ -14,11 +153,16 @@
                 <span class="lock-icon">🔒</span>
                 <span>End-to-End Encrypted</span>
             </div>
+            <div>
+                <a href="/logout" style="color: white; text-decoration: none;">Logout</a>
+            </div>
         </div>
 
         <!-- Chat Area -->
         <div class="chat-area" id="chatArea">
-            <!-- Messages will appear here -->
+            <div class="message bot-message">
+                <strong>AI Assistant:</strong> Hello! I'm your mental health companion. How are you feeling today?
+            </div>
         </div>
 
         <!-- Typing Indicator -->
@@ -31,63 +175,90 @@
         <!-- Input Area -->
         <div class="input-area">
             <div class="input-tools">
-                <button id="recordButton" class="icon-button" title="Record voice (not implemented)">
+                <button id="recordButton" class="icon-button" title="Record voice">
                     🎤
                 </button>
-                <label for="fileInput" class="icon-button" title="Attach file (not implemented)">
+                <label for="fileInput" class="icon-button" title="Attach file">
                     📎
                 </label>
                 <input type="file" id="fileInput" hidden>
             </div>
-            <input type="text" id="messageInput" placeholder="Secure message...">
+            <input type="text" id="messageInput" placeholder="Type your message...">
             <button id="sendButton">Send</button>
         </div>
     </div>
 
-    <!-- Encryption Library -->
-    <script src="{{ url_for('static', filename='js/libsodium.js') }}"></script>
     <script>
+        // Initialize Socket.IO
         const socket = io();
         const chatArea = document.getElementById('chatArea');
         const sendButton = document.getElementById('sendButton');
         const messageInput = document.getElementById('messageInput');
-
-        function addMessage(message, user = 'You') {
+        const typingIndicator = document.getElementById('typingIndicator');
+        
+        // Function to add a message to the chat
+        function addMessage(message, isUser = true) {
             const div = document.createElement('div');
             div.classList.add('message');
-            div.innerHTML = `<strong>${user}:</strong> ${message}`;
+            
+            if (isUser) {
+                div.classList.add('user-message');
+                div.innerHTML = `<strong>You:</strong> ${message}`;
+            } else {
+                div.classList.add('bot-message');
+                div.innerHTML = `<strong>AI Assistant:</strong> ${message}`;
+            }
+            
             chatArea.appendChild(div);
             chatArea.scrollTop = chatArea.scrollHeight;
         }
-
-        sendButton.addEventListener('click', () => {
-            const msg = messageInput.value.trim();
-            if (!msg) return;
-
-            socket.emit('send_message', {
-                username: "You", // You can get the actual username from the backend if needed
-                message: msg
-            });
-
-            addMessage(msg);
-            messageInput.value = '';
-        });
-
-        socket.on('receive_message', data => {
-            if (data.user !== 'You') {
-                addMessage(data.message, data.user);
+        
+        // Send message when button is clicked
+        sendButton.addEventListener('click', sendMessage);
+        
+        // Send message when Enter key is pressed
+        messageInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
             }
         });
-
-        // Optional: detect typing
-        messageInput.addEventListener('input', () => {
-            socket.emit('typing');
+        
+        function sendMessage() {
+            const message = messageInput.value.trim();
+            if (!message) return;
+            
+            // Add user message to chat
+            addMessage(message, true);
+            
+            // Send message to server
+            socket.emit('send_message', {
+                message: message
+            });
+            
+            // Clear input
+            messageInput.value = '';
+        }
+        
+        // Handle received messages
+        socket.on('receive_message', function(data) {
+            addMessage(data.message, false);
         });
-
-        socket.on('bot_typing', () => {
-            const typing = document.getElementById('typingIndicator');
-            typing.style.display = 'flex';
-            setTimeout(() => typing.style.display = 'none', 2000);
+        
+        // Handle typing indicator
+        socket.on('bot_typing', function() {
+            typingIndicator.style.display = 'flex';
+            setTimeout(function() {
+                typingIndicator.style.display = 'none';
+            }, 2000);
+        });
+        
+        // Handle connection status
+        socket.on('connect', function() {
+            console.log('Connected to server');
+        });
+        
+        socket.on('disconnect', function() {
+            console.log('Disconnected from server');
         });
     </script>
 </body>

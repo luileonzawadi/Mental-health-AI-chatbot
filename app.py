@@ -1,6 +1,7 @@
 import os
 import base64
 import requests
+import time
 from flask import Flask, render_template, request, redirect, url_for, make_response, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_jwt_extended import (
@@ -65,7 +66,7 @@ class User(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(120), unique=True, nullable=False)
-    password = db.Column(db.String(128), nullable=False)
+    password = db.Column(db.String(255), nullable=False)
     public_key = db.Column(db.Text, nullable=True)
     private_key = db.Column(db.Text, nullable=True)
 
@@ -194,10 +195,7 @@ def login():
             return jsonify({"error": "Invalid credentials"}), 401
             
         access_token = create_access_token(identity=str(user.id))
-        response = make_response(jsonify({
-            "success": True, 
-            "redirect": url_for('chat')
-        }))
+        response = make_response(render_template('success.html'))
         set_access_cookies(response, access_token)
         return response
         
@@ -234,7 +232,7 @@ def register():
             
             session.add(user)
             session.commit()
-            return jsonify({"success": True, "redirect": url_for('login_form')})
+            return redirect('/')
             
         except SQLAlchemyError as e:
             session.rollback()
@@ -246,7 +244,70 @@ def register():
             
     return render_template('register.html')
 
-# ... (keep your other routes with similar error handling improvements)
+# Chat interface route
+@app.route('/chat')
+def chat():
+    try:
+        # Try to get the JWT identity
+        user_id = get_jwt_identity()
+        
+        # Get user topics if any
+        topics = []
+        try:
+            topics = Topic.query.filter_by(user_id=user_id).all()
+        except Exception as e:
+            print(f"Error fetching topics: {str(e)}")
+        
+        return render_template('chat.html', user_id=user_id, topics=topics)
+    except Exception as e:
+        print(f"Error accessing chat: {str(e)}")
+        return render_template('error.html', message="Please log in to access the chat."), 401
+
+# Logout route
+@app.route('/logout')
+def logout():
+    response = make_response(redirect('/'))
+    unset_jwt_cookies(response)
+    return response
+
+# SocketIO event handlers
+@socketio.on('connect')
+def handle_connect():
+    print("Client connected")
+
+@socketio.on('disconnect')
+def handle_disconnect():
+    print("Client disconnected")
+
+@socketio.on('send_message')
+def handle_message(data):
+    try:
+        # Process the message and get a response
+        response = chat_with_openrouter(data['message'])
+        
+        # Emit typing indicator
+        emit('bot_typing', broadcast=False)
+        
+        # Send the response
+        emit('receive_message', {'user': 'AI Assistant', 'message': response}, broadcast=False)
+        
+        # Save to chat history if user is authenticated
+        try:
+            user_id = get_jwt_identity()
+            if user_id:
+                chat_entry = ChatHistory(
+                    user_id=user_id,
+                    message=data['message'],
+                    response=response
+                )
+                db.session.add(chat_entry)
+                db.session.commit()
+        except Exception as e:
+            print(f"Error saving chat history: {str(e)}")
+            
+    except Exception as e:
+        print(f"Error in handle_message: {str(e)}")
+        emit('receive_message', {'user': 'System', 'message': 'Sorry, I encountered an error processing your message.'}, broadcast=False)
 
 # Database Health Check Endpoint
 @app.route('/db-health')
