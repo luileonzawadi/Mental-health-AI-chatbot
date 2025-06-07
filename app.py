@@ -177,6 +177,10 @@ def chat_with_openrouter(message):
 def login_form():
     return render_template('login.html')
 
+@app.route('/public-chat')
+def public_chat():
+    return render_template('chat_public.html')
+
 @app.route('/login', methods=['POST'])
 def login():
     try:
@@ -278,9 +282,10 @@ def register():
 
 # Chat interface route
 @app.route('/chat')
+@jwt_required()
 def chat():
     try:
-        # Try to get the JWT identity
+        # Get the JWT identity
         user_id = get_jwt_identity()
         
         # Get user information
@@ -302,7 +307,7 @@ def chat():
         return render_template('chat.html', user_id=user_id, user_name=user_name, topics_by_date=topics_by_date)
     except Exception as e:
         print(f"Error accessing chat: {str(e)}")
-        return render_template('chat.html')
+        return redirect('/')
 
 # Logout route
 @app.route('/logout')
