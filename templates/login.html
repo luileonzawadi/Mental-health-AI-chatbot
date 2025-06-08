@@ -25,6 +25,16 @@
             padding: 30px;
         }
         
+        .logo-container {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .logo {
+            max-width: 120px;
+            height: auto;
+        }
+        
         h1 {
             text-align: center;
             color: #0D47A1;
@@ -106,6 +116,10 @@
                 margin: 0 10px;
             }
             
+            .logo {
+                max-width: 100px;
+            }
+            
             h1 {
                 font-size: 22px;
                 margin-bottom: 20px;
@@ -134,6 +148,9 @@
 </head>
 <body>
     <div class="container">
+        <div class="logo-container">
+            <img src="/static/img/Logo.jpg" alt="Mental Health AI Chatbot Logo" class="logo">
+        </div>
         <h1>Mental Health AI Chatbot</h1>
         <form id="loginForm" action="/login" method="post">
             <div class="form-group">
