@@ -2,6 +2,7 @@ import os
 import base64
 import requests
 import time
+import socket
 from flask import Flask, render_template, request, redirect, url_for, make_response, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_jwt_extended import (
@@ -17,13 +18,30 @@ from datetime import datetime, timedelta
 import mimetypes
 from sqlalchemy.exc import SQLAlchemyError
 
-# Apply eventlet monkey patch at the very beginning
+# Load environment variables first
+load_dotenv()
+
+# Configure proxy settings if provided
+http_proxy = os.environ.get('HTTP_PROXY')
+https_proxy = os.environ.get('HTTPS_PROXY')
+if http_proxy or https_proxy:
+    proxies = {
+        'http': http_proxy,
+        'https': https_proxy
+    }
+    os.environ['HTTP_PROXY'] = http_proxy if http_proxy else ''
+    os.environ['HTTPS_PROXY'] = https_proxy if https_proxy else ''
+    print(f"Using proxies: HTTP={http_proxy}, HTTPS={https_proxy}")
+
+# Set default timeout for socket operations
+socket.setdefaulttimeout(30)
+
+# Apply eventlet monkey patch
 import eventlet
 eventlet.monkey_patch()
-OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 
-# Load environment variables
-load_dotenv()
+# Get API key
+OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY")
 
 # Configuration
 class Config:
@@ -147,34 +165,66 @@ def get_db_session():
 # Improved OpenRouter Integration
 def chat_with_openrouter(message):
     try:
+        # First check if we can resolve the domain
+        try:
+            socket.gethostbyname('openrouter.ai')
+        except socket.gaierror as e:
+            print(f"DNS resolution failed for openrouter.ai: {e}")
+            return "Network connectivity issue. Please check your internet connection or DNS settings."
+            
+        # Get proxy settings
+        proxies = None
+        http_proxy = os.environ.get('HTTP_PROXY')
+        https_proxy = os.environ.get('HTTPS_PROXY')
+        if http_proxy or https_proxy:
+            proxies = {
+                'http': http_proxy,
+                'https': https_proxy
+            }
+            
         url = "https://openrouter.ai/api/v1/chat/completions"
         headers = {
             "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
+            "HTTP-Referer": "https://mental-health-ai-chatbot.onrender.com",
+            "X-Title": "Mental Health AI Chatbot"
         }
 
         system_instruction = (
-            "You are a friendly, compassionate AI assistant trained in Cognitive Behavioral Therapy (CBT) "
+            "You are a friendly, compassionate AI assistant trained in Cognitive Behavioral Therapy (CBT). "
             "You help users improve their mental and emotional well-being. "
             "Only respond to questions related to health and mental health. If a user asks anything unrelated, "
             "gently redirect them back to mental wellness topics. Avoid topics such as sports, politics, or technology."
         )
 
         data = {
-            "model": "deepseek/deepseek-r1-0528-qwen3-8b",
+            "model": "anthropic/claude-3-haiku",  # More reliable model
             "messages": [
                 {"role": "system", "content": system_instruction},
                 {"role": "user", "content": message}
-            ]
+            ],
+            "temperature": 0.7,
+            "max_tokens": 500
         }
 
-        response = requests.post(url, headers=headers, json=data)
+        # Use requests with proxies if configured
+        response = requests.post(url, headers=headers, json=data, timeout=30, proxies=proxies)
+        
         if response.status_code == 200:
             return response.json()["choices"][0]["message"]["content"]
         else:
-            print("OpenRouter Error:", response.text)
+            print(f"OpenRouter Error: Status {response.status_code}")
+            print(f"Response: {response.text}")
             return "Sorry, I couldn't process your message right now."
 
+    except requests.exceptions.ConnectionError as e:
+        print(f"Connection error: {str(e)}")
+        if "getaddrinfo failed" in str(e) or "ENOTFOUND" in str(e):
+            return "Network connectivity issue. Please check your internet connection."
+        return "Sorry, I couldn't connect to the AI service. Please try again later."
+    except requests.exceptions.Timeout:
+        print("Request timed out")
+        return "The request timed out. Please try again later."
     except Exception as e:
         print(f"OpenRouter API Error: {e}")
         return "Sorry, I couldn't process your message right now."
@@ -340,11 +390,19 @@ def handle_disconnect():
 @socketio.on('send_message')
 def handle_message(data):
     try:
-        # Process the message and get a response
-        response = chat_with_openrouter(data['message'])
-        
-        # Emit typing indicator
+        # Emit typing indicator immediately
         emit('bot_typing', broadcast=False)
+        
+        # Process the message and get a response
+        try:
+            response = chat_with_openrouter(data['message'])
+        except requests.exceptions.ConnectionError as e:
+            if "getaddrinfo failed" in str(e) or "ENOTFOUND" in str(e):
+                print(f"DNS resolution error: {str(e)}")
+                emit('receive_message', {'user': 'System', 'message': 'Network connectivity issue. Please check your internet connection.'}, broadcast=False)
+                return
+            else:
+                raise
         
         # Send the response
         emit('receive_message', {'user': 'AI Assistant', 'message': response}, broadcast=False)
