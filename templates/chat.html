@@ -16,7 +16,8 @@
         
         .app-container {
             display: flex;
-            height: 100vh;
+            height: calc(100vh - 60px);
+            margin-top: 60px;
         }
         
         /* Sidebar styles */
@@ -30,7 +31,7 @@
             overflow-y: auto;
             box-shadow: 2px 0 10px rgba(0,0,0,0.1);
             transition: transform 0.3s ease;
-            position: absolute;
+            position: fixed;
             top: 60px;
             left: 0;
             z-index: 100;
@@ -109,7 +110,7 @@
         /* Main chat area */
         .main-content {
             width: 100%;
-            height: 100vh;
+            height: calc(100vh - 60px);
             display: flex;
             justify-content: center;
             align-items: center;
@@ -127,7 +128,7 @@
             flex-direction: column;
         }
         
-        .chat-header {
+        .main-header {
             padding: 12px 16px;
             background-color: #0D47A1;
             color: white;
@@ -137,11 +138,14 @@
             border-bottom: 1px solid #e0e0e0;
             height: 60px;
             box-sizing: border-box;
-            position: relative;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
             z-index: 200;
         }
         
-        .chat-header.medical {
+        .main-header.medical {
             background-color: #D32F2F;
         }
         
@@ -533,53 +537,55 @@
     </style>
 </head>
 <body>
+    <!-- Main header at the top of the page -->
+    <div class="main-header" id="chatHeader">
+        <div class="header-left">
+            <button class="menu-toggle" id="menuToggle">☰</button>
+            <div class="chat-title">Mental Health Assistant</div>
+        </div>
+        <div class="header-actions">
+            <button class="talk-to-medic-btn" id="talkToMedicBtn"><span class="icon">👨‍⚕️</span> Talk to a Medical Professional</button>
+            <a href="/logout">Logout</a>
+            <div class="profile-icon">{{ user_name[0]|upper }}</div>
+        </div>
+    </div>
+
     <div class="app-container">
+        <!-- Sidebar with conversation history -->
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-content">
+                <!-- Sample conversation history -->
+                <div class="date-header">Today</div>
+                <div class="conversation-item">
+                    <div class="conversation-title">Morning Check-in</div>
+                    <div class="conversation-preview">I've been feeling anxious about my upcoming presentation...</div>
+                </div>
+                <div class="conversation-item">
+                    <div class="conversation-title">Stress Management</div>
+                    <div class="conversation-preview">What are some techniques to manage work stress?</div>
+                </div>
+                
+                <div class="date-header">Yesterday</div>
+                <div class="conversation-item">
+                    <div class="conversation-title">Sleep Issues</div>
+                    <div class="conversation-preview">I've been having trouble falling asleep lately...</div>
+                </div>
+                <div class="conversation-item">
+                    <div class="conversation-title">Meditation Practice</div>
+                    <div class="conversation-preview">How can I improve my daily meditation routine?</div>
+                </div>
+                
+                <div class="date-header">June 5, 2025</div>
+                <div class="conversation-item">
+                    <div class="conversation-title">Relationship Advice</div>
+                    <div class="conversation-preview">I'm having difficulties communicating with my partner...</div>
+                </div>
+            </div>
+        </div>
+        
         <!-- Main chat area -->
         <div class="main-content">
             <div class="chat-container">
-                <div class="chat-header" id="chatHeader">
-                    <div class="header-left">
-                        <button class="menu-toggle" id="menuToggle">☰</button>
-                        <div class="chat-title">Mental Health Assistant</div>
-                    </div>
-                    <div class="header-actions">
-                        <button class="talk-to-medic-btn" id="talkToMedicBtn"><span class="icon">👨‍⚕️</span> Talk to a Medical Professional</button>
-                        <a href="/logout">Logout</a>
-                        <div class="profile-icon">{{ user_name[0]|upper }}</div>
-                    </div>
-                </div>
-                
-                <!-- Sidebar with conversation history (now part of the main container) -->
-                <div class="sidebar" id="sidebar">
-                    <div class="sidebar-content">
-                        <!-- Sample conversation history -->
-                        <div class="date-header">Today</div>
-                        <div class="conversation-item">
-                            <div class="conversation-title">Morning Check-in</div>
-                            <div class="conversation-preview">I've been feeling anxious about my upcoming presentation...</div>
-                        </div>
-                        <div class="conversation-item">
-                            <div class="conversation-title">Stress Management</div>
-                            <div class="conversation-preview">What are some techniques to manage work stress?</div>
-                        </div>
-                        
-                        <div class="date-header">Yesterday</div>
-                        <div class="conversation-item">
-                            <div class="conversation-title">Sleep Issues</div>
-                            <div class="conversation-preview">I've been having trouble falling asleep lately...</div>
-                        </div>
-                        <div class="conversation-item">
-                            <div class="conversation-title">Meditation Practice</div>
-                            <div class="conversation-preview">How can I improve my daily meditation routine?</div>
-                        </div>
-                        
-                        <div class="date-header">June 5, 2025</div>
-                        <div class="conversation-item">
-                            <div class="conversation-title">Relationship Advice</div>
-                            <div class="conversation-preview">I'm having difficulties communicating with my partner...</div>
-                        </div>
-                    </div>
-                </div>
                 
                 <div class="messages-container" id="messagesContainer">
                     <div class="message bot-message">
@@ -751,34 +757,12 @@
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
         }
         
-        // Switch to medical professional chat
-        function switchToMedicalChat() {
-            isMedicalChat = true;
-            
-            // Update UI
-            chatHeader.classList.add('medical');
-            sendButton.classList.add('medical');
-            
-            // Update chat title
-            const chatTitle = document.querySelector('.chat-title');
-            chatTitle.innerHTML = '<div class="status-dot"></div>Dr. Sarah Johnson';
-            
-            // Clear chat and add welcome message
-            messagesContainer.innerHTML = '';
-            addMedicMessage(`Hello ${userName}, I'm Dr. Sarah Johnson, a licensed mental health professional. How can I assist you today?`);
-            
-            // Close sidebar on mobile
-            if (window.innerWidth <= 576) {
-                sidebar.classList.remove('active');
-            }
-        }
-        
         // Switch back to AI chat
         function switchToAIChat() {
             isMedicalChat = false;
             
             // Update UI
-            chatHeader.classList.remove('medical');
+            document.getElementById('chatHeader').classList.remove('medical');
             sendButton.classList.remove('medical');
             
             // Update chat title
@@ -833,6 +817,28 @@
             medicModal.style.display = 'none';
             switchToMedicalChat();
         });
+        
+        // Update header for medical chat
+        function switchToMedicalChat() {
+            isMedicalChat = true;
+            
+            // Update UI
+            document.getElementById('chatHeader').classList.add('medical');
+            sendButton.classList.add('medical');
+            
+            // Update chat title
+            const chatTitle = document.querySelector('.chat-title');
+            chatTitle.innerHTML = '<div class="status-dot"></div>Dr. Sarah Johnson';
+            
+            // Clear chat and add welcome message
+            messagesContainer.innerHTML = '';
+            addMedicMessage(`Hello ${userName}, I'm Dr. Sarah Johnson, a licensed mental health professional. How can I assist you today?`);
+            
+            // Close sidebar on mobile
+            if (window.innerWidth <= 576) {
+                sidebar.classList.remove('active');
+            }
+        }
         
         // Close modal if clicked outside
         window.addEventListener('click', (e) => {
