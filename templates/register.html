@@ -160,16 +160,42 @@
 
     <script>
         document.getElementById('registerForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
             const password = document.getElementById('password').value;
             const confirmPassword = document.getElementById('confirmPassword').value;
             const errorMessage = document.getElementById('errorMessage');
             
             if (password !== confirmPassword) {
-                e.preventDefault();
                 errorMessage.textContent = "Passwords do not match";
                 errorMessage.style.display = "block";
                 return false;
             }
+            
+            // Submit form via AJAX
+            const formData = new FormData(this);
+            
+            fetch('/register', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    errorMessage.textContent = data.error;
+                    errorMessage.style.display = "block";
+                } else if (data.success) {
+                    // Show success popup
+                    alert(data.message);
+                    // Redirect to login page
+                    window.location.href = '/';
+                }
+            })
+            .catch(error => {
+                errorMessage.textContent = "An error occurred. Please try again.";
+                errorMessage.style.display = "block";
+                console.error('Error:', error);
+            });
         });
     </script>
 </body>

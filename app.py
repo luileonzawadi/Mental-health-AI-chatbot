@@ -314,26 +314,7 @@ def login():
                 return jsonify({"error": "Invalid credentials"}), 401
                 
             access_token = create_access_token(identity=str(user.id))
-            html = """
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <title>Login Successful</title>
-                <meta http-equiv="refresh" content="1;url=/chat">
-                <style>
-                    body { font-family: Arial; text-align: center; margin-top: 50px; }
-                    h1 { color: #2196F3; }
-                    a { color: #2196F3; }
-                </style>
-            </head>
-            <body>
-                <h1>Login Successful</h1>
-                <p>Redirecting to chat...</p>
-                <p>If you are not redirected, <a href="/chat">click here</a>.</p>
-            </body>
-            </html>
-            """
-            response = make_response(html)
+            response = make_response(redirect('/chat'))
             set_access_cookies(response, access_token)
             return response
             
@@ -373,7 +354,9 @@ def register():
             
             session.add(user)
             session.commit()
-            return redirect('/')
+            
+            # Return success message that will trigger a popup
+            return jsonify({"success": True, "message": "Registration successful! You can now log in."})
             
         except SQLAlchemyError as e:
             session.rollback()
