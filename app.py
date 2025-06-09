@@ -247,6 +247,37 @@ def login_form():
 @app.route('/public-chat')
 def public_chat():
     return render_template('chat_public.html')
+    
+@app.route('/chat', methods=['POST'])
+def process_chat():
+    try:
+        data = request.json
+        message = data.get('message', '')
+        
+        if not message:
+            return jsonify({"error": "No message provided"}), 400
+            
+        # Get response from OpenRouter
+        response = chat_with_openrouter(message)
+        
+        # Save to chat history if user is logged in
+        try:
+            user_id = get_jwt_identity()
+            if user_id:
+                chat_entry = ChatHistory(
+                    user_id=user_id,
+                    message=message,
+                    response=response
+                )
+                db.session.add(chat_entry)
+                db.session.commit()
+        except Exception as e:
+            print(f"Error saving chat history: {str(e)}")
+        
+        return jsonify({"response": response})
+    except Exception as e:
+        print(f"Error in process_chat: {str(e)}")
+        return jsonify({"error": "An error occurred processing your request"}), 500
 
 @app.route('/login', methods=['POST'])
 def login():

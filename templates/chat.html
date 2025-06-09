@@ -854,38 +854,33 @@
             messagesContainer.appendChild(typingIndicator);
             scrollToBottom();
             
-            // Simulate response
-            setTimeout(() => {
-                typingIndicator.style.display = 'none';
-                
-                if (isMedicalChat) {
-                    // Medical professional response
+            if (isMedicalChat) {
+                // Medical professional response (simulated)
+                setTimeout(() => {
+                    typingIndicator.style.display = 'none';
                     let response = `Thank you for sharing that, ${userName}. As a medical professional, I'd like to understand more about your situation. Could you provide more details about your symptoms and how long you've been experiencing them?`;
                     addMedicMessage(response);
-                } else {
-                    // AI response
-                    let response;
-                    const lowerMessage = message.toLowerCase();
-                    
-                    if (lowerMessage.includes('sad') || lowerMessage.includes('depress')) {
-                        response = `I understand feeling sad can be difficult, ${userName}. Would you like to talk more about what's making you feel this way?`;
-                    } else if (lowerMessage.includes('anxious') || lowerMessage.includes('anxiety') || lowerMessage.includes('stress')) {
-                        response = `Anxiety can be challenging, ${userName}. Have you tried any breathing exercises?`;
-                    } else if (lowerMessage.includes('happy') || lowerMessage.includes('good') || lowerMessage.includes('great')) {
-                        response = `I'm glad to hear you're feeling positive, ${userName}! What specific things have contributed to your good mood today?`;
-                    } else if (lowerMessage.includes('sleep') || lowerMessage.includes('tired')) {
-                        response = `Sleep issues can significantly impact mental health, ${userName}. Have you established a consistent sleep routine?`;
-                    } else if (lowerMessage.includes('help') || lowerMessage.includes('advice')) {
-                        response = `I'm here to support you, ${userName}. Could you share more specific details about what you're experiencing?`;
-                    } else if (lowerMessage.includes('doctor') || lowerMessage.includes('medic') || lowerMessage.includes('professional')) {
-                        response = `If you'd like to speak with a medical professional, you can click the "Talk to a Medical Professional" button on the left sidebar. Would you like me to help you with anything else in the meantime?`;
-                    } else {
-                        response = `Thank you for sharing that with me, ${userName}. How does this situation make you feel emotionally?`;
-                    }
-                    
-                    addBotMessage(response);
-                }
-            }, 1500);
+                }, 1500);
+            } else {
+                // Call OpenRouter API for real AI responses
+                fetch('/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ message: message })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    typingIndicator.style.display = 'none';
+                    addBotMessage(data.response);
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    typingIndicator.style.display = 'none';
+                    addBotMessage(`I'm sorry, I couldn't process your message right now. Please try again later.`);
+                });
+            }
         }
         
         // Add user message to chat
