@@ -200,7 +200,7 @@ def chat_with_openrouter(message):
         )
 
         data = {
-            "model": "anthropic/claude-3-haiku",
+            "model": "openai/gpt-3.5-turbo",
             "messages": [
                 {"role": "system", "content": system_instruction},
                 {"role": "user", "content": message}
