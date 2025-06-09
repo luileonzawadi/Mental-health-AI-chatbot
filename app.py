@@ -3,6 +3,9 @@ import base64
 import requests
 import time
 import socket
+import json
+import traceback
+import sys
 from flask import Flask, render_template, request, redirect, url_for, make_response, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_jwt_extended import (
@@ -17,6 +20,10 @@ from dotenv import load_dotenv
 from datetime import datetime, timedelta
 import mimetypes
 from sqlalchemy.exc import SQLAlchemyError
+from urllib3.util.retry import Retry
+from requests.adapters import HTTPAdapter
+import eventlet
+import flask
 
 # Load environment variables first
 load_dotenv()
@@ -24,11 +31,12 @@ load_dotenv()
 # Configure proxy settings if provided
 http_proxy = os.environ.get('HTTP_PROXY')
 https_proxy = os.environ.get('HTTPS_PROXY')
-if http_proxy or https_proxy:
-    proxies = {
-        'http': http_proxy,
-        'https': https_proxy
-    }
+proxies = {
+    'http': http_proxy,
+    'https': https_proxy
+} if http_proxy or https_proxy else None
+
+if proxies:
     os.environ['HTTP_PROXY'] = http_proxy if http_proxy else ''
     os.environ['HTTPS_PROXY'] = https_proxy if https_proxy else ''
     print(f"Using proxies: HTTP={http_proxy}, HTTPS={https_proxy}")
@@ -37,7 +45,6 @@ if http_proxy or https_proxy:
 socket.setdefaulttimeout(30)
 
 # Apply eventlet monkey patch
-import eventlet
 eventlet.monkey_patch()
 
 # Get API key
@@ -81,7 +88,7 @@ fernet = Fernet(FERNET_KEY.encode())
 
 # Database Models
 class User(db.Model):
-    __tablename__ = 'users'  # Explicit table name to avoid issues
+    __tablename__ = 'users'
     
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=True)
@@ -140,20 +147,13 @@ def create_db_tables():
     """Ensure database tables are created properly"""
     with app.app_context():
         try:
-            # Check if we're using PostgreSQL
             if 'postgresql' in app.config['SQLALCHEMY_DATABASE_URI']:
-                # First ensure the schema exists
                 db.session.execute(db.text("CREATE SCHEMA IF NOT EXISTS public"))
                 db.session.commit()
                 
-                # Force create all tables
-                print("Creating database tables...")
-                db.create_all()
-                print("Database tables created successfully")
-            else:
-                # For SQLite or other databases
-                db.create_all()
-                print("Database tables created successfully")
+            print("Creating database tables...")
+            db.create_all()
+            print("Database tables created successfully")
         except Exception as e:
             print(f"Error creating database tables: {str(e)}")
             raise
@@ -162,43 +162,45 @@ def get_db_session():
     """Get a fresh database session"""
     return db.session
 
-# Improved OpenRouter Integration
+# Enhanced OpenRouter Integration
 def chat_with_openrouter(message):
     try:
-        # First check if we can resolve the domain
+        print(f"Attempting to call OpenRouter with API key: {OPENROUTER_API_KEY[:4]}...")
+        
         try:
             socket.gethostbyname('openrouter.ai')
         except socket.gaierror as e:
             print(f"DNS resolution failed for openrouter.ai: {e}")
             return "Network connectivity issue. Please check your internet connection or DNS settings."
             
-        # Get proxy settings
-        proxies = None
-        http_proxy = os.environ.get('HTTP_PROXY')
-        https_proxy = os.environ.get('HTTPS_PROXY')
-        if http_proxy or https_proxy:
-            proxies = {
-                'http': http_proxy,
-                'https': https_proxy
-            }
-            
+        session = requests.Session()
+        retry_strategy = Retry(
+            total=3,
+            backoff_factor=1,
+            status_forcelist=[408, 429, 500, 502, 503, 504]
+        )
+        adapter = HTTPAdapter(max_retries=retry_strategy)
+        session.mount("https://", adapter)
+        session.mount("http://", adapter)
+        
         url = "https://openrouter.ai/api/v1/chat/completions"
         headers = {
             "Authorization": f"Bearer {OPENROUTER_API_KEY}",
             "Content-Type": "application/json",
-            "HTTP-Referer": "https://mental-health-ai-chatbot.onrender.com",
-            "X-Title": "Mental Health AI Chatbot"
+            "HTTP-Referer": request.host_url,
+            "X-Title": "Mental Health AI Chatbot",
+            "Accept": "application/json"
         }
 
         system_instruction = (
             "You are a friendly, compassionate AI assistant trained in Cognitive Behavioral Therapy (CBT). "
             "You help users improve their mental and emotional well-being. "
             "Only respond to questions related to health and mental health. If a user asks anything unrelated, "
-            "gently redirect them back to mental wellness topics. Avoid topics such as sports, politics, or technology."
+            "gently redirect them back to mental wellness topics."
         )
 
         data = {
-            "model": "anthropic/claude-3-haiku",  # More reliable model
+            "model": "anthropic/claude-3-haiku",
             "messages": [
                 {"role": "system", "content": system_instruction},
                 {"role": "user", "content": message}
@@ -207,28 +209,35 @@ def chat_with_openrouter(message):
             "max_tokens": 500
         }
 
-        # Use requests with proxies if configured
-        response = requests.post(url, headers=headers, json=data, timeout=30, proxies=proxies)
+        print(f"Sending request to OpenRouter with data: {json.dumps(data, indent=2)}")
+        
+        response = session.post(url, headers=headers, json=data, timeout=30, proxies=proxies)
         
         if response.status_code == 200:
-            return response.json()["choices"][0]["message"]["content"]
+            try:
+                response_json = response.json()
+                print(f"OpenRouter response: {json.dumps(response_json, indent=2)}")
+                return response_json["choices"][0]["message"]["content"]
+            except (KeyError, IndexError) as e:
+                print(f"Unexpected response format: {response.text}")
+                return "Sorry, I received an unexpected response format from the AI service."
         else:
-            print(f"OpenRouter Error: Status {response.status_code}")
-            print(f"Response: {response.text}")
-            return "Sorry, I couldn't process your message right now."
+            error_msg = f"OpenRouter Error: Status {response.status_code}\nHeaders: {response.headers}\nBody: {response.text}"
+            print(error_msg)
+            return f"Sorry, I couldn't process your message (Error {response.status_code})."
 
-    except requests.exceptions.ConnectionError as e:
-        print(f"Connection error: {str(e)}")
-        if "getaddrinfo failed" in str(e) or "ENOTFOUND" in str(e):
-            return "Network connectivity issue. Please check your internet connection."
+    except requests.exceptions.RequestException as e:
+        error_msg = f"Request failed: {str(e)}\n{traceback.format_exc()}"
+        print(error_msg)
+        if isinstance(e, requests.exceptions.ConnectionError):
+            return "Network error. Please check your internet connection."
+        elif isinstance(e, requests.exceptions.Timeout):
+            return "The request timed out. Please try again later."
         return "Sorry, I couldn't connect to the AI service. Please try again later."
-    except requests.exceptions.Timeout:
-        print("Request timed out")
-        return "The request timed out. Please try again later."
     except Exception as e:
-        print(f"OpenRouter API Error: {e}")
-        return "Sorry, I couldn't process your message right now."
-
+        error_msg = f"Unexpected error: {str(e)}\n{traceback.format_exc()}"
+        print(error_msg)
+        return "Sorry, I encountered an unexpected error processing your message."
 
 # Routes
 @app.route('/')
@@ -249,14 +258,11 @@ def login():
             return jsonify({"error": "Email and password are required"}), 400
         
         try:
-            # Check if the users table exists
             inspector = db.inspect(db.engine)
             if 'users' not in inspector.get_table_names():
-                # Create tables if they don't exist
                 create_db_tables()
                 return jsonify({"error": "Please try again. Database was being set up."}), 500
             
-            # Use a fresh session for login operation
             session = get_db_session()
             user = session.query(User).filter(User.email == email).first()
             
@@ -338,19 +344,14 @@ def register():
             
     return render_template('register.html')
 
-# Chat interface route
 @app.route('/chat')
 @jwt_required()
 def chat():
     try:
-        # Get the JWT identity
         user_id = get_jwt_identity()
-        
-        # Get user information
         user = User.query.get(user_id)
         user_name = user.name if user and user.name else user.email.split('@')[0]
         
-        # Get user topics grouped by date
         topics_by_date = {}
         try:
             topics = Topic.query.filter_by(user_id=user_id).order_by(Topic.created_at.desc()).all()
@@ -362,7 +363,6 @@ def chat():
         except Exception as e:
             print(f"Error fetching topics: {str(e)}")
         
-        # Check if the user wants to use Socket.IO
         use_socketio = request.args.get('socketio', 'false').lower() == 'true'
         template = 'chat_socketio.html' if use_socketio else 'chat.html'
         
@@ -371,12 +371,41 @@ def chat():
         print(f"Error accessing chat: {str(e)}")
         return redirect('/')
 
-# Logout route
 @app.route('/logout')
 def logout():
     response = make_response(redirect('/'))
     unset_jwt_cookies(response)
     return response
+
+@app.route('/test-api')
+def test_api():
+    """Endpoint to test OpenRouter API connectivity"""
+    test_message = "Hello, this is a test message. Please respond with 'OK' if you receive this."
+    
+    try:
+        response = chat_with_openrouter(test_message)
+        
+        return jsonify({
+            "status": "success",
+            "response": response,
+            "api_key_set": bool(OPENROUTER_API_KEY),
+            "proxy_settings": {
+                "http": http_proxy,
+                "https": https_proxy
+            },
+            "environment": {
+                "python_version": sys.version,
+                "flask_version": flask.__version__,
+                "requests_version": requests.__version__
+            }
+        })
+    except Exception as e:
+        return jsonify({
+            "status": "error",
+            "error": str(e),
+            "traceback": traceback.format_exc(),
+            "api_key_set": bool(OPENROUTER_API_KEY)
+        }), 500
 
 # SocketIO event handlers
 @socketio.on('connect')
@@ -390,24 +419,24 @@ def handle_disconnect():
 @socketio.on('send_message')
 def handle_message(data):
     try:
-        # Emit typing indicator immediately
         emit('bot_typing', broadcast=False)
         
-        # Process the message and get a response
         try:
             response = chat_with_openrouter(data['message'])
-        except requests.exceptions.ConnectionError as e:
-            if "getaddrinfo failed" in str(e) or "ENOTFOUND" in str(e):
-                print(f"DNS resolution error: {str(e)}")
-                emit('receive_message', {'user': 'System', 'message': 'Network connectivity issue. Please check your internet connection.'}, broadcast=False)
-                return
-            else:
-                raise
+        except Exception as e:
+            error_msg = f"API Error: {str(e)}"
+            print(error_msg)
+            emit('receive_message', {
+                'user': 'System', 
+                'message': 'Sorry, I encountered an error. Please try again later.'
+            }, broadcast=False)
+            return
         
-        # Send the response
-        emit('receive_message', {'user': 'AI Assistant', 'message': response}, broadcast=False)
+        emit('receive_message', {
+            'user': 'AI Assistant', 
+            'message': response
+        }, broadcast=False)
         
-        # Save to chat history if user is authenticated
         try:
             user_id = get_jwt_identity()
             if user_id:
@@ -423,15 +452,16 @@ def handle_message(data):
             
     except Exception as e:
         print(f"Error in handle_message: {str(e)}")
-        emit('receive_message', {'user': 'System', 'message': 'Sorry, I encountered an error processing your message.'}, broadcast=False)
+        emit('receive_message', {
+            'user': 'System', 
+            'message': 'Sorry, I encountered an unexpected error.'
+        }, broadcast=False)
 
 # Database Health Check Endpoint
 @app.route('/db-health')
 def db_health_check():
     try:
-        # Test connection
         db.session.execute("SELECT 1")
-        # Test User table
         user_count = db.session.query(User).count()
         return jsonify({
             "status": "healthy",
@@ -457,17 +487,12 @@ def internal_error(error):
 # Application Startup
 def initialize_app():
     try:
-        # Always create tables on startup
         create_db_tables()
         print("Application initialization complete")
         print(f"Database URL: {app.config['SQLALCHEMY_DATABASE_URI']}")
     except Exception as e:
         print(f"Failed to initialize application: {str(e)}")
         raise
-
-# Register blueprints
-from routes.medical import medical_bp
-app.register_blueprint(medical_bp)
 
 # Initialize database tables
 initialize_app()
