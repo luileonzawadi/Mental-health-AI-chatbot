@@ -242,6 +242,9 @@ def chat_with_openrouter(message):
 # Routes
 @app.route('/')
 def login_form():
+    # Handle HEAD requests from monitoring services
+    if request.method == 'HEAD':
+        return '', 200
     return render_template('login.html')
 
 @app.route('/public-chat')
@@ -498,6 +501,11 @@ def db_health_check():
             "error": str(e),
             "database_url": app.config['SQLALCHEMY_DATABASE_URI']
         }), 500
+
+# Health check endpoint for monitoring services
+@app.route('/health')
+def health_check():
+    return jsonify({"status": "ok"}), 200
 
 # Error Handlers
 @app.errorhandler(404)
