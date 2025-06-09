@@ -262,15 +262,25 @@ def process_chat():
         
         # Save to chat history if user is logged in
         try:
-            user_id = get_jwt_identity()
-            if user_id:
-                chat_entry = ChatHistory(
-                    user_id=user_id,
-                    message=message,
-                    response=response
-                )
-                db.session.add(chat_entry)
-                db.session.commit()
+            from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
+            # Try to verify JWT but continue if not available
+            valid_jwt = False
+            try:
+                verify_jwt_in_request(optional=True)
+                valid_jwt = True
+            except:
+                pass
+                
+            if valid_jwt:
+                user_id = get_jwt_identity()
+                if user_id:
+                    chat_entry = ChatHistory(
+                        user_id=user_id,
+                        message=message,
+                        response=response
+                    )
+                    db.session.add(chat_entry)
+                    db.session.commit()
         except Exception as e:
             print(f"Error saving chat history: {str(e)}")
         
