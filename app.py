@@ -167,6 +167,12 @@ def chat_with_openrouter(message):
     try:
         print(f"Attempting to call OpenRouter with API key: {OPENROUTER_API_KEY[:4]}...")
         
+        # Disable SSL verification for troubleshooting
+        import ssl
+        ssl_context = ssl.create_default_context()
+        ssl_context.check_hostname = False
+        ssl_context.verify_mode = ssl.CERT_NONE
+        
         try:
             socket.gethostbyname('openrouter.ai')
         except socket.gaierror as e:
@@ -211,7 +217,7 @@ def chat_with_openrouter(message):
 
         print(f"Sending request to OpenRouter with data: {json.dumps(data, indent=2)}")
         
-        response = session.post(url, headers=headers, json=data, timeout=30, proxies=proxies)
+        response = session.post(url, headers=headers, json=data, timeout=30, proxies=proxies, verify=False)
         
         if response.status_code == 200:
             try:
@@ -233,7 +239,13 @@ def chat_with_openrouter(message):
             return "Network error. Please check your internet connection."
         elif isinstance(e, requests.exceptions.Timeout):
             return "The request timed out. Please try again later."
+        elif isinstance(e, requests.exceptions.SSLError):
+            return "SSL verification error. Please check your SSL certificates or network configuration."
         return "Sorry, I couldn't connect to the AI service. Please try again later."
+    except RecursionError as e:
+        error_msg = f"Recursion error: {str(e)}\n{traceback.format_exc()}"
+        print(error_msg)
+        return "Sorry, I encountered a recursion error. Please try again with a simpler request."
     except Exception as e:
         error_msg = f"Unexpected error: {str(e)}\n{traceback.format_exc()}"
         print(error_msg)
