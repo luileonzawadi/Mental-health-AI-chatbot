@@ -1,0 +1,255 @@
+/* Responsive Design for Mental Health AI Chatbot */
+
+/* Base responsive settings */
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+/* Mobile-first approach */
+body {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Layout for different screen sizes */
+@media screen and (max-width: 768px) {
+  /* Tablet and mobile layout */
+  body {
+    flex-direction: column;
+  }
+  
+  .sidebar {
+    width: 100%;
+    max-width: 100%;
+    min-width: 100%;
+    height: auto;
+    max-height: 40vh;
+    float: none;
+    margin: 0;
+    border-radius: 0;
+  }
+  
+  #conversationList {
+    max-height: 30vh;
+  }
+  
+  .chat-container {
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    height: 60vh;
+    border-radius: 0;
+  }
+  
+  .input-area {
+    padding: 10px;
+  }
+  
+  #messageInput {
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+  
+  .message {
+    max-width: 90%;
+  }
+}
+
+@media screen and (max-width: 480px) {
+  /* Smartphone specific adjustments */
+  .input-area {
+    flex-wrap: wrap;
+  }
+  
+  .input-tools {
+    width: 100%;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+  
+  #messageInput {
+    width: 70%;
+  }
+  
+  #sendButton {
+    width: 28%;
+    padding: 10px 0;
+  }
+  
+  .header {
+    padding: 10px;
+  }
+  
+  .security-indicator span:not(.lock-icon) {
+    font-size: 0.8rem;
+  }
+}
+
+/* Landscape orientation for mobile */
+@media screen and (max-height: 500px) and (orientation: landscape) {
+  .sidebar {
+    display: none; /* Hide sidebar in landscape on small screens */
+  }
+  
+  .chat-container {
+    height: 100vh;
+  }
+  
+  .chat-area {
+    max-height: 60vh;
+  }
+}
+
+/* Larger screens */
+@media screen and (min-width: 769px) {
+  body {
+    flex-direction: row;
+    height: 100vh;
+  }
+  
+  .sidebar {
+    width: 260px;
+    height: 100vh;
+  }
+  
+  .chat-container {
+    flex: 1;
+    margin: 0;
+    height: 100vh;
+    max-width: none;
+  }
+}
+
+/* Touch-friendly elements */
+button, .menu-btn, .conversation-item, .tool-button, .quick-reply-btn {
+  min-height: 44px; /* Apple's recommended touch target size */
+}
+
+/* Improved visibility for popup menus on mobile */
+@media screen and (max-width: 768px) {
+  .popup-menu {
+    min-width: 120px;
+  }
+  
+  .popup-menu div {
+    padding: 12px 16px;
+  }
+}
+
+/* Flexible message container */
+.message {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+/* Improved scrolling experience */
+.chat-area, #conversationList, .messages-container {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Prevent content from being hidden under keyboard on mobile */
+@media screen and (max-width: 768px) {
+  .input-area {
+    position: sticky;
+    bottom: 0;
+    background: #f0f4f8;
+    z-index: 10;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  body {
+    background: #121212;
+    color: #e0e0e0;
+  }
+  
+  .chat-container, .sidebar {
+    background-color: #1e1e1e;
+  }
+  
+  .chat-area, .messages-container {
+    background: #2d2d2d;
+  }
+  
+  .message {
+    background: #333333;
+    color: #e0e0e0;
+  }
+  
+  .input-area {
+    background: #1e1e1e;
+  }
+  
+  #messageInput {
+    background: #333333;
+    color: #e0e0e0;
+    border-color: #555555;
+  }
+  
+  .bot-message {
+    background: #2d2d2d;
+  }
+  
+  .user-message {
+    background: #1976D2;
+  }
+}
+
+/* Responsive adjustments for app.py chat interface */
+@media screen and (max-width: 576px) {
+  .app-container {
+    flex-direction: column;
+  }
+  
+  .main-header {
+    padding: 8px 10px;
+  }
+  
+  .profile-icon {
+    width: 32px;
+    height: 32px;
+  }
+  
+  .welcome-container {
+    padding: 15px;
+  }
+  
+  .welcome-header {
+    font-size: 20px;
+  }
+  
+  .quick-replies {
+    flex-wrap: wrap;
+  }
+  
+  .quick-reply-btn {
+    margin: 4px;
+    padding: 8px 12px;
+    font-size: 14px;
+  }
+  
+  .tool-button {
+    font-size: 18px;
+    margin-right: 8px;
+  }
+}
+
+/* Fix for notched phones */
+@supports (padding: max(0px)) {
+  .input-area {
+    padding-bottom: max(10px, env(safe-area-inset-bottom));
+  }
+  
+  .main-header {
+    padding-top: max(8px, env(safe-area-inset-top));
+    padding-left: max(10px, env(safe-area-inset-left));
+    padding-right: max(10px, env(safe-area-inset-right));
+  }
+}

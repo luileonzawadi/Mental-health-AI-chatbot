@@ -3,7 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0D47A1">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Mental Health AI Chatbot</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/responsive.css') }}">
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -135,6 +139,7 @@
             background-color: #fff;
             border-bottom-left-radius: 20px;
             border-bottom-right-radius: 20px;
+            flex-wrap: wrap;
         }
         
         #messageInput {
@@ -260,6 +265,7 @@
         </div>
     </div>
 
+    <script src="{{ url_for('static', filename='js/viewport-fix.js') }}"></script>
     <script>
         const messagesContainer = document.getElementById('messagesContainer');
         const messageInput = document.getElementById('messageInput');

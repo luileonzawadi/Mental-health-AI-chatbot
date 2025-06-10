@@ -3,7 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0D47A1">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Register - Mental Health AI Chatbot</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/responsive.css') }}">
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -112,11 +116,27 @@
             input[type="email"],
             input[type="password"] {
                 padding: 10px;
-                font-size: 15px;
+                font-size: 16px; /* Prevents zoom on iOS */
             }
             
             button {
                 padding: 12px;
+                min-height: 44px; /* Better touch target */
+            }
+        }
+        
+        /* Small phones */
+        @media (max-width: 360px) {
+            .container {
+                padding: 15px;
+            }
+            
+            h1 {
+                font-size: 20px;
+            }
+            
+            .login-link {
+                font-size: 14px;
             }
         }
         
@@ -158,6 +178,7 @@
         </div>
     </div>
 
+    <script src="{{ url_for('static', filename='js/viewport-fix.js') }}"></script>
     <script>
         document.getElementById('registerForm').addEventListener('submit', function(e) {
             e.preventDefault();

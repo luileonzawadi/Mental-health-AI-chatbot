@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#5E9CA0">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Login - Mental Health AI Chatbot</title>
     <meta name="description" content="Login to access your Mental Health AI Chatbot for personalized support">
     <meta property="og:title" content="Login - Mental Health AI Chatbot">
@@ -11,6 +14,7 @@
     <meta property="og:type" content="website">
     <link rel="icon" href="/static/img/Logo.jpg" type="image/jpeg">
     <link rel="apple-touch-icon" href="/static/img/Logo.jpg">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/responsive.css') }}">
     <style>
         :root {
             --primary-color: #5E9CA0;
@@ -198,11 +202,27 @@
             input[type="email"],
             input[type="password"] {
                 padding: 10px;
-                font-size: 15px;
+                font-size: 16px; /* Prevents zoom on iOS */
             }
             
             button {
                 padding: 12px;
+                min-height: 44px; /* Better touch target */
+            }
+        }
+        
+        /* Small phones */
+        @media (max-width: 360px) {
+            .container {
+                padding: 15px;
+            }
+            
+            h1 {
+                font-size: 20px;
+            }
+            
+            .register-link, .guest-link {
+                font-size: 14px;
             }
         }
         
@@ -240,5 +260,6 @@
             <a href="/public-chat">Continue as guest</a>
         </div>
     </div>
+    <script src="{{ url_for('static', filename='js/viewport-fix.js') }}"></script>
 </body>
 </html>

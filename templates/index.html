@@ -2,98 +2,17 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Secure Mental Health Companion</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/responsive.css') }}" />
     <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
-    <style>
-        .sidebar {
-            width: 260px;
-            min-width: 200px;
-            max-width: 320px;
-            height: 100vh;
-            overflow: hidden;
-            background: #f5f5f5;
-            float: left;
-            display: flex;
-            flex-direction: column;
-        }
-        #conversationList {
-            flex: 1 1 auto;
-            overflow-y: auto;
-            max-height: calc(100vh - 60px);
-            padding-right: 8px;
-            margin: 0;
-            word-break: break-word;
-        }
-        .conversation-item {
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 4px 0;
-            max-width: 220px;
-            position: relative;
-        }
-        .conversation-item span {
-            flex: 1 1 auto;
-            min-width: 0;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-        .date-header {
-            font-weight: bold;
-            margin-top: 10px;
-            margin-bottom: 2px;
-            color: #555;
-            background: #f0f0f0;
-            padding: 2px 8px;
-            border-radius: 4px;
-        }
-        .menu-btn {
-            background: none;
-            border: none;
-            font-size: 18px;
-            cursor: pointer;
-            margin-left: 6px;
-            padding: 2px 6px;
-        }
-        .popup-menu {
-            position: absolute;
-            background: #fff;
-            border: 1px solid #ccc;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-            border-radius: 4px;
-            z-index: 9999;
-            min-width: 90px;
-            right: 10px;
-            top: 28px;
-            display: none;
-        }
-        .popup-menu div {
-            padding: 8px 12px;
-            cursor: pointer;
-            white-space: nowrap;
-        }
-        .popup-menu div:hover {
-            background: #f0f0f0;
-        }
-    </style>
 </head>
 <body>
 
     <!-- Sidebar -->
-     
     <aside class="sidebar">
-    <div class="sidebar-header">Conversations</div>
-    <nav>
-        <ul id="conversationList">
-            <!-- Conversations will be loaded here -->
-        </ul>
-    </nav>
-</aside>
+        <div class="sidebar-header">Conversations</div>
         <nav>
             <ul id="conversationList">
                 <!-- Conversations will be loaded here -->
@@ -118,9 +37,11 @@
         <!-- Input Area -->
         <div class="input-area">
             <input type="file" id="fileInput" style="display:none" />
-            <button id="attachBtn" title="Attach Document">📎</button>
-            <button id="recordBtn" title="Record Audio">🎤</button>
-            <button id="newConvBtn" title="New Conversation">➕</button>
+            <div class="input-tools">
+                <button id="attachBtn" title="Attach Document" class="icon-button">📎</button>
+                <button id="recordBtn" title="Record Audio" class="icon-button">🎤</button>
+                <button id="newConvBtn" title="New Conversation" class="icon-button">➕</button>
+            </div>
             <input type="text" id="messageInput" placeholder="Secure message..." autocomplete="off" />
             <button id="sendButton">Send</button>
         </div>
