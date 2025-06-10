@@ -9,19 +9,20 @@
     <style>
         :root {
             --vh: 1vh;
-            --primary-color: #5E9CA0;
-            --primary-light: #C5E1E2;
-            --primary-dark: #2B7A78;
-            --accent-color: #7FB069;
-            --accent-light: #D4E6B5;
+            --primary-color: #1976D2;
+            --primary-light: #BBDEFB;
+            --primary-dark: #0D47A1;
+            --accent-color: #42A5F5;
+            --accent-light: #E3F2FD;
             --text-color: #333333;
             --text-light: #666666;
             --background-color: #F5F9FA;
             --card-color: #FFFFFF;
-            --error-color: #E57373;
-            --success-color: #81C784;
-            --shadow: 0 2px 10px rgba(0,0,0,0.08);
+            --error-color: #EF5350;
+            --success-color: #66BB6A;
+            --shadow: 0 4px 12px rgba(25, 118, 210, 0.1);
             --border-radius: 12px;
+            --gradient: linear-gradient(135deg, #1976D2, #64B5F6);
         }
         
         body {
@@ -29,6 +30,7 @@
             margin: 0;
             padding: 0;
             background-color: var(--background-color);
+            background-image: linear-gradient(135deg, #F5F9FA 0%, #E3F2FD 100%);
             height: 100vh; /* Fallback */
             height: calc(var(--vh, 1vh) * 100);
             overflow: hidden;
@@ -172,7 +174,7 @@
         
         .main-header {
             padding: 12px 16px;
-            background-color: var(--primary-color);
+            background: var(--gradient);
             color: white;
             display: flex;
             justify-content: space-between;
@@ -187,7 +189,7 @@
             z-index: 200;
             -webkit-tap-highlight-color: transparent;
             box-shadow: var(--shadow);
-            transition: background-color 0.3s ease;
+            transition: all 0.3s ease;
         }
         
         .main-header.medical {
@@ -233,9 +235,9 @@
         }
         
         .profile-icon {
-            width: 36px;
-            height: 36px;
-            background-color: var(--card-color);
+            width: 38px;
+            height: 38px;
+            background: linear-gradient(135deg, #FFFFFF, #E3F2FD);
             border-radius: 50%;
             display: flex;
             justify-content: center;
@@ -244,14 +246,34 @@
             font-weight: bold;
             font-size: 16px;
             cursor: pointer;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            box-shadow: 0 3px 8px rgba(25, 118, 210, 0.2);
             transition: all 0.3s ease;
-            border: 2px solid var(--primary-light);
+            border: 2px solid #FFFFFF;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .profile-icon::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, #1976D2, #64B5F6, #1976D2);
+            border-radius: 50%;
+            z-index: -1;
+            animation: rotate 3s linear infinite;
+        }
+        
+        @keyframes rotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
         
         .profile-icon:hover {
-            transform: scale(1.05);
-            box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+            transform: scale(1.08);
+            box-shadow: 0 5px 12px rgba(25, 118, 210, 0.3);
         }
         
         .profile-dropdown {
@@ -319,27 +341,59 @@
         }
         
         .welcome-container {
-            background-color: var(--primary-light);
+            background: linear-gradient(to right, var(--accent-light), #FFFFFF);
             border-radius: var(--border-radius);
-            padding: 20px;
-            margin: 10px 0 20px;
+            padding: 25px;
+            margin: 10px 0 25px;
             text-align: center;
             box-shadow: var(--shadow);
             animation: fadeIn 0.5s ease;
             border-left: 4px solid var(--primary-color);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .welcome-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('/static/img/pattern.svg');
+            background-size: 300px;
+            opacity: 0.05;
+            pointer-events: none;
         }
         
         .welcome-header {
-            font-size: 22px;
+            font-size: 24px;
             font-weight: 600;
             color: var(--primary-dark);
             margin-bottom: 12px;
+            position: relative;
+            display: inline-block;
+        }
+        
+        .welcome-header::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 50px;
+            height: 3px;
+            background: var(--gradient);
+            border-radius: 3px;
         }
         
         .welcome-message {
             font-size: 16px;
             margin-bottom: 20px;
             color: var(--text-color);
+            max-width: 80%;
+            margin-left: auto;
+            margin-right: auto;
         }
         
         .quick-replies {
@@ -354,31 +408,70 @@
             background-color: var(--card-color);
             border: 1px solid var(--primary-color);
             border-radius: 20px;
-            padding: 8px 16px;
-            font-size: 14px;
+            padding: 10px 18px;
+            font-size: 15px;
             cursor: pointer;
-            transition: all 0.2s ease;
-            color: var(--text-color);
+            transition: all 0.3s ease;
+            color: var(--primary-color);
+            font-weight: 500;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .quick-reply-btn::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 5px;
+            height: 5px;
+            background: rgba(255, 255, 255, 0.5);
+            opacity: 0;
+            border-radius: 100%;
+            transform: scale(1, 1) translate(-50%);
+            transform-origin: 50% 50%;
         }
         
         .quick-reply-btn:hover {
             background-color: var(--primary-color);
             color: white;
             transform: translateY(-2px);
-            box-shadow: 0 3px 5px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 8px rgba(25, 118, 210, 0.2);
+        }
+        
+        .quick-reply-btn:active::after {
+            animation: ripple 0.6s ease-out;
+        }
+        
+        @keyframes ripple {
+            0% {
+                transform: scale(0, 0);
+                opacity: 0.5;
+            }
+            100% {
+                transform: scale(20, 20);
+                opacity: 0;
+            }
         }
         
         .message {
             max-width: 70%;
-            padding: 12px 16px;
-            margin-bottom: 12px;
+            padding: 14px 18px;
+            margin-bottom: 14px;
             border-radius: 18px;
             position: relative;
             word-wrap: break-word;
             font-size: 15px;
             line-height: 1.5;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
             animation: fadeIn 0.3s ease;
+            transition: all 0.2s ease;
+        }
+        
+        .message:hover {
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            transform: translateY(-1px);
         }
         
         @keyframes fadeIn {
@@ -387,10 +480,11 @@
         }
         
         .user-message {
-            background-color: var(--primary-light);
-            color: var(--text-color);
+            background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+            color: white;
             align-self: flex-end;
             border-bottom-right-radius: 4px;
+            text-shadow: 0 1px 1px rgba(0,0,0,0.1);
         }
         
         .bot-message {
@@ -399,14 +493,15 @@
             align-self: flex-start;
             border-bottom-left-radius: 4px;
             border-left: 3px solid var(--primary-color);
+            box-shadow: 0 2px 8px rgba(25, 118, 210, 0.1);
         }
         
         .medic-message {
-            background-color: var(--accent-light);
-            color: var(--text-color);
+            background: linear-gradient(135deg, #42A5F5, #2196F3);
+            color: white;
             align-self: flex-start;
             border-bottom-left-radius: 4px;
-            border-left: 3px solid var(--accent-color);
+            text-shadow: 0 1px 1px rgba(0,0,0,0.1);
         }
         
         .typing-indicator {
@@ -466,24 +561,31 @@
         .tool-button {
             background: none;
             border: none;
-            font-size: 18px;
+            font-size: 20px;
             color: var(--primary-color);
             cursor: pointer;
-            margin-right: 10px;
-            padding: 6px;
+            margin-right: 12px;
+            padding: 8px;
             border-radius: 50%;
-            transition: all 0.2s ease;
+            transition: all 0.3s ease;
+            position: relative;
         }
         
         .tool-button:hover {
             background-color: var(--primary-light);
-            transform: scale(1.1);
+            transform: scale(1.15) rotate(5deg);
+            color: var(--primary-dark);
+            box-shadow: 0 2px 5px rgba(25, 118, 210, 0.15);
+        }
+        
+        .tool-button:active {
+            transform: scale(0.95);
         }
         
         #messageInput {
             flex: 1;
-            padding: 12px 16px;
-            border: 1px solid rgba(0,0,0,0.1);
+            padding: 14px 18px;
+            border: 1px solid rgba(25, 118, 210, 0.2);
             border-radius: 24px;
             font-size: 15px;
             outline: none;
@@ -496,7 +598,13 @@
         
         #messageInput:focus {
             border-color: var(--primary-color);
-            box-shadow: 0 0 0 2px var(--primary-light);
+            box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.15);
+            background-color: white;
+        }
+        
+        #messageInput::placeholder {
+            color: #90CAF9;
+            opacity: 0.7;
         }
         
         #messageInput::placeholder {
@@ -505,35 +613,54 @@
         }
         
         #sendButton {
-            background-color: var(--primary-color);
+            background: var(--gradient);
             color: white;
             border: none;
-            width: 40px;
-            height: 40px;
+            width: 45px;
+            height: 45px;
             border-radius: 50%;
             margin-left: 12px;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 16px;
+            font-size: 18px;
             transition: all 0.3s ease;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            box-shadow: 0 3px 8px rgba(25, 118, 210, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        #sendButton::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 5px;
+            height: 5px;
+            background: rgba(255, 255, 255, 0.5);
+            opacity: 0;
+            border-radius: 100%;
+            transform: scale(1, 1) translate(-50%);
+            transform-origin: 50% 50%;
         }
         
         #sendButton.medical {
-            background-color: var(--accent-color);
+            background: linear-gradient(135deg, #42A5F5, #2196F3);
         }
         
         #sendButton:hover {
-            background-color: var(--primary-dark);
-            transform: scale(1.05);
-            box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+            transform: scale(1.08) rotate(5deg);
+            box-shadow: 0 5px 12px rgba(25, 118, 210, 0.3);
+        }
+        
+        #sendButton:active::after {
+            animation: ripple 0.6s ease-out;
         }
         
         #sendButton.medical:hover {
-            background-color: var(--accent-color);
-            filter: brightness(90%);
+            filter: brightness(110%);
+            transform: scale(1.08);
         }
         
         .new-chat-btn {
