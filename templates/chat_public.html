@@ -3,20 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="theme-color" content="#5E9CA0">
+    <meta name="theme-color" content="#0D47A1">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Mental Health AI Chatbot</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/responsive.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/colors.css') }}">
     <style>
-        :root {
-            --primary-color: #5E9CA0;
-            --primary-light: #C5E1E2;
-            --primary-dark: #2B7A78;
-            --background-color: #F5F9FA;
-            --card-color: #FFFFFF;
-            --border-radius: 12px;
-        }
+        /* Using colors from colors.css */
         
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -52,7 +46,7 @@
         
         .chat-header {
             padding: 12px 16px;
-            background-color: #5E9CA0;
+            background-color: var(--primary-color);
             color: white;
             display: flex;
             justify-content: space-between;
@@ -170,11 +164,11 @@
         }
         
         #messageInput:focus {
-            border-color: #5E9CA0;
+            border-color: var(--primary-color);
         }
         
         #sendButton {
-            background-color: #5E9CA0;
+            background-color: var(--primary-color);
             color: white;
             border: none;
             width: 32px;
@@ -189,7 +183,7 @@
         }
         
         #sendButton:hover {
-            background-color: #2B7A78;
+            background-color: var(--primary-dark);
         }
         
         .login-prompt {
@@ -200,18 +194,18 @@
         
         .login-button {
             display: inline-block;
-            background-color: #5E9CA0;
+            background-color: var(--primary-color);
             color: white;
             text-decoration: none;
             padding: 10px 20px;
-            border-radius: 12px;
+            border-radius: var(--border-radius);
             margin-top: 10px;
             font-weight: bold;
             transition: all 0.3s ease;
         }
         
         .login-button:hover {
-            background-color: #2B7A78;
+            background-color: var(--primary-dark);
             transform: translateY(-2px);
             box-shadow: 0 4px 8px rgba(0,0,0,0.15);
         }

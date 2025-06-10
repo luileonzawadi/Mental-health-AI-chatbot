@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="theme-color" content="#5E9CA0">
+    <meta name="theme-color" content="#0D47A1">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/colors.css') }}">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Login - Mental Health AI Chatbot</title>
@@ -16,21 +17,7 @@
     <link rel="apple-touch-icon" href="/static/img/Logo.jpg">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/responsive.css') }}">
     <style>
-        :root {
-            --primary-color: #5E9CA0;
-            --primary-light: #C5E1E2;
-            --primary-dark: #2B7A78;
-            --accent-color: #7FB069;
-            --accent-light: #D4E6B5;
-            --text-color: #333333;
-            --text-light: #666666;
-            --background-color: #F5F9FA;
-            --card-color: #FFFFFF;
-            --error-color: #E57373;
-            --success-color: #81C784;
-            --shadow: 0 2px 10px rgba(0,0,0,0.08);
-            --border-radius: 12px;
-        }
+        /* Using colors from colors.css */
         
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;

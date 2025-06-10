@@ -1,0 +1,16 @@
+/* Consistent color scheme for Mental Health AI Chatbot */
+:root {
+  --primary-color: #0D47A1;
+  --primary-light: #BBDEFB;
+  --primary-dark: #1565C0;
+  --accent-color: #42A5F5;
+  --accent-light: #E3F2FD;
+  --text-color: #333333;
+  --text-light: #666666;
+  --background-color: #F5F9FA;
+  --card-color: #FFFFFF;
+  --error-color: #E57373;
+  --success-color: #81C784;
+  --shadow: 0 2px 10px rgba(0,0,0,0.08);
+  --border-radius: 12px;
+}

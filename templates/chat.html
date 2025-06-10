@@ -5,7 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#0D47A1">
     <title>Mental Health AI Chatbot</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/colors.css') }}">
     <meta name="description" content="A supportive AI chatbot for mental health assistance and guidance">
     <meta property="og:title" content="Mental Health AI Chatbot">
     <meta property="og:description" content="Get support and guidance for your mental wellbeing">
@@ -23,20 +25,8 @@
     <style>
         :root {
             --vh: 1vh;
-            --primary-color: #1976D2;
-            --primary-light: #BBDEFB;
-            --primary-dark: #0D47A1;
-            --accent-color: #42A5F5;
-            --accent-light: #E3F2FD;
-            --text-color: #333333;
-            --text-light: #666666;
-            --background-color: #F5F9FA;
-            --card-color: #FFFFFF;
-            --error-color: #EF5350;
-            --success-color: #66BB6A;
-            --shadow: 0 4px 12px rgba(25, 118, 210, 0.1);
-            --border-radius: 12px;
-            --gradient: linear-gradient(135deg, #1976D2, #64B5F6);
+            /* Using colors from colors.css */
+            --gradient: linear-gradient(135deg, var(--primary-color), var(--accent-color));
         }
         
         body {
