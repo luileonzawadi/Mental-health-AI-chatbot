@@ -3,7 +3,6 @@
 
 import os
 import requests
-import ssl
 from dotenv import load_dotenv
 
 def test_openrouter_connection():
@@ -37,18 +36,14 @@ def test_openrouter_connection():
         "max_tokens": 100
     }
     
-    # Create a session with SSL verification disabled
-    session = requests.Session()
-    session.verify = False
-    
-    # Suppress SSL warnings
+    # Disable SSL verification
     import urllib3
     urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
     
     # Make request
     try:
         print("Sending request to OpenRouter...")
-        response = session.post(url, headers=headers, json=data, timeout=30)
+        response = requests.post(url, headers=headers, json=data, timeout=30, verify=False)
         
         print(f"Status code: {response.status_code}")
         
