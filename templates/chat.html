@@ -371,6 +371,30 @@
             overflow: hidden;
         }
         
+        .close-welcome {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 24px;
+            height: 24px;
+            background: rgba(255,255,255,0.7);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 16px;
+            color: var(--text-light);
+            border: none;
+            transition: all 0.2s ease;
+        }
+        
+        .close-welcome:hover {
+            background: rgba(255,255,255,1);
+            color: var(--primary-color);
+            transform: scale(1.1);
+        }
+        
         .welcome-container::before {
             content: '';
             position: absolute;
@@ -1114,7 +1138,8 @@
             <div class="chat-container">
                 
                 <div class="messages-container" id="messagesContainer">
-                    <div class="welcome-container">
+                    <div class="welcome-container" id="welcomeContainer">
+                        <button class="close-welcome" id="closeWelcome">&times;</button>
                         <div class="welcome-header">Welcome, {{ user_name }}!</div>
                         <div class="welcome-message">I'm your mental health companion. How are you feeling today?</div>
                         <div class="quick-replies">
@@ -1359,6 +1384,7 @@
             const welcomeContainer = document.createElement('div');
             welcomeContainer.className = 'welcome-container';
             welcomeContainer.innerHTML = `
+                <button class="close-welcome" onclick="document.getElementById('welcomeContainer').style.display='none'">&times;</button>
                 <div class="welcome-header">Welcome, ${userName}!</div>
                 <div class="welcome-message">I'm your mental health companion. How are you feeling today?</div>
                 <div class="quick-replies">
@@ -1393,6 +1419,7 @@
                 const welcomeContainer = document.createElement('div');
                 welcomeContainer.className = 'welcome-container';
                 welcomeContainer.innerHTML = `
+                    <button class="close-welcome" onclick="document.getElementById('welcomeContainer').style.display='none'">&times;</button>
                     <div class="welcome-header">Welcome, ${userName}!</div>
                     <div class="welcome-message">I'm your mental health companion. How are you feeling today?</div>
                     <div class="quick-replies">
@@ -1502,6 +1529,11 @@
                 sidebar.classList.remove('active');
             }
             profileDropdown.classList.remove('active');
+        });
+        
+        // Close welcome container
+        document.getElementById('closeWelcome').addEventListener('click', function() {
+            document.getElementById('welcomeContainer').style.display = 'none';
         });
     </script>
 </body>
