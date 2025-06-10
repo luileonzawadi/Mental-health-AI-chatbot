@@ -6,6 +6,20 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
     <title>Mental Health AI Chatbot</title>
+    <meta name="description" content="A supportive AI chatbot for mental health assistance and guidance">
+    <meta property="og:title" content="Mental Health AI Chatbot">
+    <meta property="og:description" content="Get support and guidance for your mental wellbeing">
+    <meta property="og:image" content="/static/img/Logo.jpg">
+    <meta property="og:type" content="website">
+    <link rel="icon" href="/static/img/Logo.jpg" type="image/jpeg">
+    <link rel="apple-touch-icon" href="/static/img/Logo.jpg">
+    <meta name="description" content="A supportive AI chatbot for mental health assistance and guidance">
+    <meta property="og:title" content="Mental Health AI Chatbot">
+    <meta property="og:description" content="Get support and guidance for your mental wellbeing">
+    <meta property="og:image" content="/static/img/Logo.jpg">
+    <meta property="og:type" content="website">
+    <link rel="icon" href="/static/img/Logo.jpg" type="image/jpeg">
+    <link rel="apple-touch-icon" href="/static/img/Logo.jpg">
     <style>
         :root {
             --vh: 1vh;
@@ -199,6 +213,20 @@
         .header-left {
             display: flex;
             align-items: center;
+        }
+        
+        .logo-header {
+            display: flex;
+            align-items: center;
+        }
+        
+        .header-logo {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            margin-left: 10px;
+            border: 2px solid white;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
         
         .chat-title {
@@ -1039,7 +1067,10 @@
     <div class="main-header" id="chatHeader">
         <div class="header-left">
             <button class="menu-toggle" id="menuToggle">☰</button>
-            <div class="chat-title">Mental Health Assistant</div>
+            <div class="logo-header">
+                <img src="/static/img/Logo.jpg" alt="Logo" class="header-logo">
+                <div class="chat-title">Mental Health Assistant</div>
+            </div>
         </div>
         <div class="header-actions">
             <button class="talk-to-medic-btn" id="talkToMedicBtn"><span class="icon">👨‍⚕️</span> Talk to a Medical Professional</button>

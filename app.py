@@ -247,6 +247,40 @@ def login_form():
         return '', 200
     return render_template('login.html')
 
+@app.route('/robots.txt')
+def robots():
+    return """
+User-agent: *
+Allow: /
+Sitemap: /sitemap.xml
+"""
+
+@app.route('/sitemap.xml')
+def sitemap():
+    host_url = request.host_url.rstrip('/')
+    pages = [
+        {'loc': host_url, 'priority': '1.0'},
+        {'loc': f"{host_url}/login", 'priority': '0.8'},
+        {'loc': f"{host_url}/register", 'priority': '0.8'},
+        {'loc': f"{host_url}/chat", 'priority': '0.9'},
+        {'loc': f"{host_url}/public-chat", 'priority': '0.7'}
+    ]
+    
+    xml = '<?xml version="1.0" encoding="UTF-8"?>\n'
+    xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+    
+    for page in pages:
+        xml += '  <url>\n'
+        xml += f'    <loc>{page["loc"]}</loc>\n'
+        xml += f'    <priority>{page["priority"]}</priority>\n'
+        xml += '  </url>\n'
+    
+    xml += '</urlset>'
+    
+    response = make_response(xml)
+    response.headers["Content-Type"] = "application/xml"
+    return response
+
 @app.route('/public-chat')
 def public_chat():
     return render_template('chat_public.html')
