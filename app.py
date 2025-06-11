@@ -166,17 +166,13 @@ def get_db_session():
 def chat_with_openrouter(message):
     try:
         print(f"Attempting to call OpenRouter with API key: {OPENROUTER_API_KEY[:4]}...")
-        
-        # Disable SSL verification globally
-        import urllib3
-        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-        
+
         try:
             socket.gethostbyname('openrouter.ai')
         except socket.gaierror as e:
             print(f"DNS resolution failed for openrouter.ai: {e}")
             return "Network connectivity issue. Please check your internet connection or DNS settings."
-            
+
         session = requests.Session()
         session.verify = False
         retry_strategy = Retry(
@@ -187,7 +183,7 @@ def chat_with_openrouter(message):
         adapter = HTTPAdapter(max_retries=retry_strategy)
         session.mount("https://", adapter)
         session.mount("http://", adapter)
-        
+
         url = "https://openrouter.ai/api/v1/chat/completions"
         headers = {
             "Authorization": f"Bearer {OPENROUTER_API_KEY}",
@@ -215,38 +211,27 @@ def chat_with_openrouter(message):
         }
 
         print(f"Sending request to OpenRouter with data: {json.dumps(data, indent=2)}")
-        
+
         response = session.post(url, headers=headers, json=data, timeout=30, proxies=proxies, verify=False)
-        
+
         if response.status_code == 200:
             try:
                 response_json = response.json()
-                print(f"OpenRouter response: {json.dumps(response_json, indent=2)}")
+                print("✅ API Call Successful!")
+                print(f"Response:\n{json.dumps(response_json, indent=2)}")
                 return response_json["choices"][0]["message"]["content"]
-            except (KeyError, IndexError) as e:
-                print(f"Unexpected response format: {response.text}")
-                return "Sorry, I received an unexpected response format from the AI service."
+            except (KeyError, IndexError):
+                print(f"Unexpected response format:\n{response.text}")
+                return "Unexpected response format from the AI service."
         else:
-            error_msg = f"OpenRouter Error: Status {response.status_code}\nHeaders: {response.headers}\nBody: {response.text}"
-            print(error_msg)
-            return f"Sorry, I couldn't process your message (Error {response.status_code})."
+            print(f"❌ API Error: {response.status_code}")
+            print(f"Body: {response.text}")
+            return f"Error {response.status_code}: Failed to get response."
 
-    except requests.exceptions.RequestException as e:
-        error_msg = f"Request failed: {str(e)}\n{traceback.format_exc()}"
-        print(error_msg)
-        if isinstance(e, requests.exceptions.ConnectionError):
-            return "Network error. Please check your internet connection."
-        elif isinstance(e, requests.exceptions.Timeout):
-            return "The request timed out. Please try again later."
-        return "Sorry, I couldn't connect to the AI service. Please try again later."
-    except RecursionError as e:
-        error_msg = f"Recursion error: {str(e)}\n{traceback.format_exc()}"
-        print(error_msg)
-        return "Sorry, I encountered a recursion error. Please try again with a simpler request."
     except Exception as e:
-        error_msg = f"Unexpected error: {str(e)}\n{traceback.format_exc()}"
-        print(error_msg)
-        return "Sorry, I encountered an unexpected error processing your message."
+        print(f"❌ Exception: {str(e)}\n{traceback.format_exc()}")
+        return "An error occurred."
+        
 
 # Routes
 @app.route('/')
