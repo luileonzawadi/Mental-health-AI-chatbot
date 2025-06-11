@@ -23,6 +23,7 @@ from urllib3.util.retry import Retry
 from requests.adapters import HTTPAdapter
 import eventlet
 import flask
+from dotenv import load_dotenv
 
 # Load environment variables first
 load_dotenv()
@@ -45,10 +46,8 @@ socket.setdefaulttimeout(30)
 
 # Apply eventlet monkey patch
 eventlet.monkey_patch()
-from dotenv import load_dotenv
-import os
 
-load_dotenv()
+# Get API key from environment variables
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 
 # Configuration
