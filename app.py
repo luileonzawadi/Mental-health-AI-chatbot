@@ -16,7 +16,6 @@ from flask_socketio import SocketIO, emit
 from cryptography.fernet import Fernet
 from nacl import public
 from werkzeug.security import generate_password_hash, check_password_hash
-from dotenv import load_dotenv
 from datetime import datetime, timedelta
 import mimetypes
 from sqlalchemy.exc import SQLAlchemyError
@@ -46,9 +45,11 @@ socket.setdefaulttimeout(30)
 
 # Apply eventlet monkey patch
 eventlet.monkey_patch()
+from dotenv import load_dotenv
+import os
 
-# Get API key
-OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY")
+load_dotenv()
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 
 # Configuration
 class Config:
