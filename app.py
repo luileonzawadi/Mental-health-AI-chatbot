@@ -48,7 +48,7 @@ socket.setdefaulttimeout(30)
 eventlet.monkey_patch()
 
 # Get API key from environment variables
-OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+OPENROUTER_API_KEY = os.getenv.get("OPENROUTER_API_KEY")
 
 # Configuration
 class Config:
