@@ -185,7 +185,7 @@ def chat_with_openrouter(message):
             headers=headers,
             json=data,
             timeout=30,
-            verify=False
+           
         )
         
         if response.status_code == 200:
