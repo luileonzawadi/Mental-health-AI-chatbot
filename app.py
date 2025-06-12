@@ -167,23 +167,15 @@ def chat_with_openrouter(message):
     try:
         print(f"Attempting to call OpenRouter with API key: {OPENROUTER_API_KEY[:10]}...")
 
-        try:
-            socket.gethostbyname('openrouter.ai')
-        except socket.gaierror as e:
-            print(f"DNS resolution failed for openrouter.ai: {e}")
-            return "Network connectivity issue. Please check your internet connection or DNS settings."
-
+        # Disable SSL warnings
+        import urllib3
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+        
+        # Create a simple session without the recursive SSL configuration
         session = requests.Session()
         session.verify = False
-        retry_strategy = Retry(
-            total=3,
-            backoff_factor=1,
-            status_forcelist=[408, 429, 500, 502, 503, 504]
-        )
-        adapter = HTTPAdapter(max_retries=retry_strategy)
-        session.mount("https://", adapter)
-        session.mount("http://", adapter)
-
+        
+        # Use a simpler retry mechanism
         url = "https://openrouter.ai/api/v1/chat/completions"
         headers = {
             "Authorization": f"Bearer {OPENROUTER_API_KEY}",
@@ -212,7 +204,24 @@ def chat_with_openrouter(message):
 
         print(f"Sending request to OpenRouter with data: {json.dumps(data, indent=2)}")
 
-        response = session.post(url, headers=headers, json=data, timeout=30, proxies=proxies, verify=False)
+        # Make the request with simple retry logic
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                response = requests.post(
+                    url, 
+                    headers=headers, 
+                    json=data, 
+                    timeout=30, 
+                    verify=False
+                )
+                break
+            except requests.exceptions.RequestException as e:
+                if attempt < max_retries - 1:
+                    print(f"Request failed, retrying ({attempt+1}/{max_retries}): {str(e)}")
+                    time.sleep(2 ** attempt)  # Exponential backoff
+                else:
+                    raise
 
         if response.status_code == 200:
             try:
