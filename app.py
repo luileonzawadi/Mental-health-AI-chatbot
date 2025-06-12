@@ -385,27 +385,7 @@ def chat():
         return render_template('chat.html', user_id=user_id, user_name=user_name, topics_by_date=topics_by_date)
     except Exception as e:
         print(f"Error accessing chat: {str(e)}")
-        return redirect('/')nd user.name else user.email.split('@')[0]
-        
-        topics_by_date = {}
-        try:
-            topics = Topic.query.filter_by(user_id=user_id).order_by(Topic.created_at.desc()).all()
-            for topic in topics:
-                date_str = topic.created_at.strftime('%Y-%m-%d')
-                if date_str not in topics_by_date:
-                    topics_by_date[date_str] = []
-                topics_by_date[date_str].append(topic)
-        except Exception as e:
-            print(f"Error fetching topics: {str(e)}")
-        
-        use_socketio = request.args.get('socketio', 'false').lower() == 'true'
-        template = 'chat_socketio.html' if use_socketio else 'chat.html'
-        
-        return render_template(template, user_id=user_id, user_name=user_name, topics_by_date=topics_by_date)
-    except Exception as e:
-        print(f"Error accessing chat: {str(e)}")
         return redirect('/')
-
 @app.route('/logout')
 def logout():
     response = make_response(redirect('/'))
