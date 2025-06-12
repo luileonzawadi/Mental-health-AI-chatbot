@@ -198,7 +198,7 @@ def chat_with_openrouter(message):
                     headers=headers,
                     json=data,
                     timeout=30,
-                    verify=False  # Only use this if you have SSL issues; otherwise, remove it for production
+                     # Only use this if you have SSL issues; otherwise, remove it for production
                 )
                 break
             except requests.exceptions.RequestException as e:
