@@ -1,12 +1,12 @@
 import os
 import base64
-import requests
 import time
 import socket
 import json
 import traceback
-import httpx
 import sys
+import asyncio
+import httpx
 from flask import Flask, render_template, request, redirect, url_for, make_response, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_jwt_extended import (
@@ -149,8 +149,7 @@ def create_db_tables():
 def get_db_session():
     return db.session
 
-
-def chat_with_openrouter(message):
+async def chat_with_openrouter(message):
     try:
         system_instruction = (
             "You are a friendly, compassionate AI assistant trained in Cognitive Behavioral Therapy (CBT). "
@@ -174,8 +173,8 @@ def chat_with_openrouter(message):
             "HTTP-Referer": request.host_url if request else "https://mental-health-ai-chatbot.onrender.com",
             "X-Title": "Mental Health AI Chatbot"
         }
-        with httpx.Client(timeout=30) as client:
-            response = client.post(url, headers=headers, json=data)
+        async with httpx.AsyncClient(timeout=30) as client:
+            response = await client.post(url, headers=headers, json=data)
         if response.status_code == 200:
             response_data = response.json()
             return response_data["choices"][0]["message"]["content"]
@@ -186,7 +185,7 @@ def chat_with_openrouter(message):
     except Exception as e:
         print(f"Exception in chat_with_openrouter: {str(e)}")
         return "I'm sorry, I encountered an error processing your message. Please try again later."
-# ...rest of your routes and logic remain unchanged...
+
 @app.route('/')
 def login_form():
     if request.method == 'HEAD':
@@ -211,18 +210,14 @@ def sitemap():
         {'loc': f"{host_url}/chat", 'priority': '0.9'},
         {'loc': f"{host_url}/public-chat", 'priority': '0.7'}
     ]
-    
     xml = '<?xml version="1.0" encoding="UTF-8"?>\n'
     xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
-    
     for page in pages:
         xml += '  <url>\n'
         xml += f'    <loc>{page["loc"]}</loc>\n'
         xml += f'    <priority>{page["priority"]}</priority>\n'
         xml += '  </url>\n'
-    
     xml += '</urlset>'
-    
     response = make_response(xml)
     response.headers["Content-Type"] = "application/xml"
     return response
@@ -230,19 +225,16 @@ def sitemap():
 @app.route('/public-chat')
 def public_chat():
     return render_template('chat_public.html')
-    
+
 @app.route('/chat', methods=['POST'])
-def process_chat():
+async def process_chat():
     try:
         data = request.json
         message = data.get('message', '')
-        
         if not message:
             return jsonify({"error": "No message provided"}), 400
-            
         # Get response from OpenRouter
-        response = chat_with_openrouter(message)
-        
+        response = await chat_with_openrouter(message)
         # Save to chat history if user is logged in
         try:
             from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
@@ -252,7 +244,6 @@ def process_chat():
                 valid_jwt = True
             except:
                 pass
-                
             if valid_jwt:
                 user_id = get_jwt_identity()
                 if user_id:
@@ -265,7 +256,6 @@ def process_chat():
                     db.session.commit()
         except Exception as e:
             print(f"Error saving chat history: {str(e)}")
-        
         return jsonify({"response": response})
     except Exception as e:
         print(f"Error in process_chat: {str(e)}")
@@ -276,30 +266,23 @@ def login():
     try:
         email = request.form.get('email', '').strip()
         password = request.form.get('password', '').strip()
-        
         if not email or not password:
             return jsonify({"error": "Email and password are required"}), 400
-        
         try:
             inspector = db.inspect(db.engine)
             if 'users' not in inspector.get_table_names():
                 create_db_tables()
                 return jsonify({"error": "Please try again. Database was being set up."}), 500
-            
             session = get_db_session()
             user = session.query(User).filter(User.email == email).first()
-            
             if not user:
                 return jsonify({"error": "Invalid credentials"}), 401
-                
             if not user.check_password(password):
                 return jsonify({"error": "Invalid credentials"}), 401
-                
             access_token = create_access_token(identity=str(user.id))
             response = make_response(redirect('/chat'))
             set_access_cookies(response, access_token)
             return response
-            
         except SQLAlchemyError as e:
             if session:
                 session.rollback()
@@ -316,14 +299,11 @@ def register():
             name = request.form.get('name', '').strip()
             email = request.form.get('email', '').strip()
             password = request.form.get('password', '').strip()
-            
             if not email or not password:
                 return jsonify({"error": "Email and password are required"}), 400
-                
             session = get_db_session()
             if session.query(User).filter(User.email == email).first():
                 return jsonify({"error": "Email already exists"}), 400
-                
             private_key = public.PrivateKey.generate()
             encrypted_private = fernet.encrypt(bytes(private_key))
             user = User(
@@ -333,12 +313,9 @@ def register():
                 private_key=base64.b64encode(encrypted_private).decode()
             )
             user.set_password(password)
-            
             session.add(user)
             session.commit()
-            
             return jsonify({"success": True, "message": "Registration successful! You can now log in."})
-            
         except SQLAlchemyError as e:
             session.rollback()
             print(f"Database error during registration: {str(e)}")
@@ -346,7 +323,6 @@ def register():
         except Exception as e:
             print(f"Unexpected error during registration: {str(e)}")
             return jsonify({"error": "An error occurred during registration"}), 500
-            
     return render_template('register.html')
 
 @app.route('/chat')
@@ -356,7 +332,6 @@ def chat():
         user_id = get_jwt_identity()
         user = User.query.get(user_id)
         user_name = user.name if user and user.name else user.email.split('@')[0]
-        
         topics_by_date = {}
         try:
             topics = Topic.query.filter_by(user_id=user_id).order_by(Topic.created_at.desc()).all()
@@ -367,11 +342,11 @@ def chat():
                 topics_by_date[date_str].append(topic)
         except Exception as e:
             print(f"Error fetching topics: {str(e)}")
-        
         return render_template('chat.html', user_id=user_id, user_name=user_name, topics_by_date=topics_by_date)
     except Exception as e:
         print(f"Error accessing chat: {str(e)}")
         return redirect('/')
+
 @app.route('/logout')
 def logout():
     response = make_response(redirect('/'))
@@ -382,10 +357,9 @@ def logout():
 def test_api():
     """Endpoint to test OpenRouter API connectivity"""
     test_message = "Hello, this is a test message. Please respond with 'OK' if you receive this."
-    
     try:
-        response = chat_with_openrouter(test_message)
-        
+        # Use asyncio.run for sync context
+        response = asyncio.run(chat_with_openrouter(test_message))
         return jsonify({
             "status": "success",
             "response": response,
@@ -397,7 +371,7 @@ def test_api():
             "environment": {
                 "python_version": sys.version,
                 "flask_version": flask.__version__,
-                "requests_version": requests.__version__
+                "requests_version": httpx.__version__
             }
         })
     except Exception as e:
@@ -418,12 +392,11 @@ def handle_disconnect():
     print("Client disconnected")
 
 @socketio.on('send_message')
-def handle_message(data):
+async def handle_message(data):
     try:
         emit('bot_typing', broadcast=False)
-        
         try:
-            response = chat_with_openrouter(data['message'])
+            response = await chat_with_openrouter(data['message'])
         except Exception as e:
             error_msg = f"API Error: {str(e)}"
             print(error_msg)
@@ -432,32 +405,28 @@ def handle_message(data):
                 'message': 'Sorry, I encountered an error. Please try again later.'
             }, broadcast=False)
             return
-        
         emit('receive_message', {
             'user': 'AI Assistant', 
             'message': response
         }, broadcast=False)
-        
         try:
             user_id = get_jwt_identity()
             if user_id:
                 chat_entry = ChatHistory(
                     user_id=user_id,
                     message=data['message'],
-                    response=json.dumps(response)  # Save as JSON string
+                    response=json.dumps(response)
                 )
                 db.session.add(chat_entry)
                 db.session.commit()
         except Exception as e:
             print(f"Error saving chat history: {str(e)}")
-            
     except Exception as e:
         print(f"Error in handle_message: {str(e)}")
         emit('receive_message', {
             'user': 'System', 
             'message': 'Sorry, I encountered an unexpected error.'
         }, broadcast=False)
-
 
 def initialize_app():
     try:
