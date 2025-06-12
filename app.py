@@ -231,10 +231,15 @@ async def process_chat():
     try:
         data = request.json
         message = data.get('message', '')
+        topic_id = data.get('topic_id')
+        topic_title = data.get('topic_title', 'New Conversation')
+        
         if not message:
             return jsonify({"error": "No message provided"}), 400
+            
         # Get response from OpenRouter
         response = await chat_with_openrouter(message)
+        
         # Save to chat history if user is logged in
         try:
             from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
@@ -244,18 +249,43 @@ async def process_chat():
                 valid_jwt = True
             except:
                 pass
+            
             if valid_jwt:
                 user_id = get_jwt_identity()
                 if user_id:
+                    # Create a new topic if needed
+                    if not topic_id:
+                        # Use first few words of message as topic title if not provided
+                        if topic_title == 'New Conversation' and len(message) > 0:
+                            words = message.split()
+                            topic_title = ' '.join(words[:3]) + ('...' if len(words) > 3 else '')
+                        
+                        new_topic = Topic(
+                            user_id=user_id,
+                            title=topic_title
+                        )
+                        db.session.add(new_topic)
+                        db.session.flush()  # Get the ID without committing
+                        topic_id = new_topic.id
+                    
+                    # Save the chat entry
                     chat_entry = ChatHistory(
                         user_id=user_id,
                         message=message,
-                        response=response
+                        response=response,
+                        topic_id=topic_id
                     )
                     db.session.add(chat_entry)
                     db.session.commit()
+                    
+                    return jsonify({
+                        "response": response,
+                        "topic_id": topic_id,
+                        "topic_title": topic_title
+                    })
         except Exception as e:
             print(f"Error saving chat history: {str(e)}")
+            
         return jsonify({"response": response})
     except Exception as e:
         print(f"Error in process_chat: {str(e)}")
@@ -339,7 +369,11 @@ def chat():
                 date_str = topic.created_at.strftime('%Y-%m-%d')
                 if date_str not in topics_by_date:
                     topics_by_date[date_str] = []
-                topics_by_date[date_str].append(topic)
+                topics_by_date[date_str].append({
+                    'id': topic.id,
+                    'title': topic.title,
+                    'created_at': topic.created_at
+                })
         except Exception as e:
             print(f"Error fetching topics: {str(e)}")
         return render_template('chat.html', user_id=user_id, user_name=user_name, topics_by_date=topics_by_date)
@@ -405,20 +439,49 @@ async def handle_message(data):
                 'message': 'Sorry, I encountered an error. Please try again later.'
             }, broadcast=False)
             return
+            
+        topic_id = data.get('topic_id')
+        topic_title = data.get('topic_title', 'New Conversation')
+        
         emit('receive_message', {
             'user': 'AI Assistant', 
             'message': response
         }, broadcast=False)
+        
         try:
             user_id = get_jwt_identity()
             if user_id:
+                # Create a new topic if needed
+                if not topic_id:
+                    # Use first few words of message as topic title if not provided
+                    if topic_title == 'New Conversation' and len(data['message']) > 0:
+                        words = data['message'].split()
+                        topic_title = ' '.join(words[:3]) + ('...' if len(words) > 3 else '')
+                    
+                    new_topic = Topic(
+                        user_id=user_id,
+                        title=topic_title
+                    )
+                    db.session.add(new_topic)
+                    db.session.flush()  # Get the ID without committing
+                    topic_id = new_topic.id
+                
+                # Save the chat entry
                 chat_entry = ChatHistory(
                     user_id=user_id,
                     message=data['message'],
-                    response=json.dumps(response)
+                    response=json.dumps(response),
+                    topic_id=topic_id
                 )
                 db.session.add(chat_entry)
                 db.session.commit()
+                
+                # Emit topic information back to client
+                emit('topic_updated', {
+                    'topic_id': topic_id,
+                    'topic_title': topic_title,
+                    'created_at': datetime.utcnow().strftime('%Y-%m-%d')
+                })
         except Exception as e:
             print(f"Error saving chat history: {str(e)}")
     except Exception as e:
@@ -438,6 +501,121 @@ def initialize_app():
         raise
 
 initialize_app()
+
+# API endpoints for topic management
+@app.route('/api/topics', methods=['GET'])
+@jwt_required()
+def get_topics():
+    try:
+        user_id = get_jwt_identity()
+        topics = Topic.query.filter_by(user_id=user_id).order_by(Topic.created_at.desc()).all()
+        topics_by_date = {}
+        
+        for topic in topics:
+            date_str = topic.created_at.strftime('%Y-%m-%d')
+            if date_str not in topics_by_date:
+                topics_by_date[date_str] = []
+            
+            topics_by_date[date_str].append({
+                'id': topic.id,
+                'title': topic.title,
+                'created_at': topic.created_at.isoformat()
+            })
+            
+        return jsonify({"success": True, "topics_by_date": topics_by_date})
+    except Exception as e:
+        print(f"Error fetching topics: {str(e)}")
+        return jsonify({"error": "Failed to fetch topics"}), 500
+
+@app.route('/api/topics/<int:topic_id>', methods=['GET'])
+@jwt_required()
+def get_topic_history(topic_id):
+    try:
+        user_id = get_jwt_identity()
+        # Verify the topic belongs to the user
+        topic = Topic.query.filter_by(id=topic_id, user_id=user_id).first()
+        if not topic:
+            return jsonify({"error": "Topic not found"}), 404
+            
+        # Get chat history for this topic
+        history = ChatHistory.query.filter_by(topic_id=topic_id).order_by(ChatHistory.timestamp).all()
+        
+        chat_history = []
+        for entry in history:
+            chat_history.append({
+                'id': entry.id,
+                'message': entry.message,
+                'response': entry.response,
+                'timestamp': entry.timestamp.isoformat()
+            })
+            
+        return jsonify({
+            "success": True, 
+            "topic": {
+                "id": topic.id,
+                "title": topic.title,
+                "created_at": topic.created_at.isoformat()
+            },
+            "history": chat_history
+        })
+    except Exception as e:
+        print(f"Error fetching topic history: {str(e)}")
+        return jsonify({"error": "Failed to fetch topic history"}), 500
+
+@app.route('/api/topics/<int:topic_id>', methods=['PUT'])
+@jwt_required()
+def update_topic(topic_id):
+    try:
+        user_id = get_jwt_identity()
+        data = request.json
+        new_title = data.get('title')
+        
+        if not new_title:
+            return jsonify({"error": "Title is required"}), 400
+            
+        # Verify the topic belongs to the user
+        topic = Topic.query.filter_by(id=topic_id, user_id=user_id).first()
+        if not topic:
+            return jsonify({"error": "Topic not found"}), 404
+            
+        # Update the title
+        topic.title = new_title
+        db.session.commit()
+        
+        return jsonify({
+            "success": True, 
+            "topic": {
+                "id": topic.id,
+                "title": topic.title,
+                "created_at": topic.created_at.isoformat()
+            }
+        })
+    except Exception as e:
+        print(f"Error updating topic: {str(e)}")
+        return jsonify({"error": "Failed to update topic"}), 500
+
+@app.route('/api/topics/<int:topic_id>', methods=['DELETE'])
+@jwt_required()
+def delete_topic(topic_id):
+    try:
+        user_id = get_jwt_identity()
+        
+        # Verify the topic belongs to the user
+        topic = Topic.query.filter_by(id=topic_id, user_id=user_id).first()
+        if not topic:
+            return jsonify({"error": "Topic not found"}), 404
+            
+        # Delete associated chat history first
+        ChatHistory.query.filter_by(topic_id=topic_id).delete()
+        
+        # Delete the topic
+        db.session.delete(topic)
+        db.session.commit()
+        
+        return jsonify({"success": True, "message": "Topic deleted successfully"})
+    except Exception as e:
+        print(f"Error deleting topic: {str(e)}")
+        return jsonify({"error": "Failed to delete topic"}), 500
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))

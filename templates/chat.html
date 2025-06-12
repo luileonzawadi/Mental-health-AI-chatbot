@@ -96,6 +96,9 @@
             cursor: pointer;
             transition: all 0.2s ease;
             border-left: 3px solid transparent;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
         
         .conversation-item:hover {
@@ -107,6 +110,10 @@
             font-size: 15px;
             margin-bottom: 3px;
             color: #050505;
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
         
         .conversation-preview {
@@ -115,6 +122,48 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+        }
+        
+        .conversation-actions {
+            display: flex;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+        
+        .conversation-item:hover .conversation-actions {
+            opacity: 1;
+        }
+        
+        .edit-topic-btn, .delete-topic-btn {
+            background: none;
+            border: none;
+            font-size: 14px;
+            cursor: pointer;
+            padding: 4px;
+            margin-left: 4px;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+        
+        .edit-topic-btn:hover, .delete-topic-btn:hover {
+            background-color: rgba(0,0,0,0.1);
+            transform: scale(1.1);
+        }
+        
+        .delete-topic-btn:hover {
+            color: var(--error-color);
+        }
+        
+        .empty-topics {
+            padding: 20px;
+            text-align: center;
+            color: var(--text-light);
+            font-size: 14px;
         }
         
         .talk-to-medic-btn {
@@ -1104,32 +1153,24 @@
         <!-- Sidebar with conversation history -->
         <div class="sidebar" id="sidebar">
             <div class="sidebar-content">
-                <!-- Sample conversation history -->
-                <div class="date-header">Today</div>
-                <div class="conversation-item">
-                    <div class="conversation-title">Morning Check-in</div>
-                    <div class="conversation-preview">I've been feeling anxious about my upcoming presentation...</div>
+                <!-- Dynamic conversation history -->
+                {% for date, topics in topics_by_date.items() %}
+                <div class="date-header">{{ date }}</div>
+                {% for topic in topics %}
+                <div class="conversation-item" data-topic-id="{{ topic.id }}">
+                    <div class="conversation-title">{{ topic.title }}</div>
+                    <div class="conversation-actions">
+                        <button class="edit-topic-btn" title="Edit topic" onclick="editTopic({{ topic.id }}, event)">✏️</button>
+                        <button class="delete-topic-btn" title="Delete topic" onclick="deleteTopic({{ topic.id }}, event)">🗑️</button>
+                    </div>
                 </div>
-                <div class="conversation-item">
-                    <div class="conversation-title">Stress Management</div>
-                    <div class="conversation-preview">What are some techniques to manage work stress?</div>
+                {% endfor %}
+                {% else %}
+                <div class="empty-topics">
+                    <p>No conversation history yet.</p>
+                    <p>Start a new chat to create your first topic!</p>
                 </div>
-                
-                <div class="date-header">Yesterday</div>
-                <div class="conversation-item">
-                    <div class="conversation-title">Sleep Issues</div>
-                    <div class="conversation-preview">I've been having trouble falling asleep lately...</div>
-                </div>
-                <div class="conversation-item">
-                    <div class="conversation-title">Meditation Practice</div>
-                    <div class="conversation-preview">How can I improve my daily meditation routine?</div>
-                </div>
-                
-                <div class="date-header">June 5, 2025</div>
-                <div class="conversation-item">
-                    <div class="conversation-title">Relationship Advice</div>
-                    <div class="conversation-preview">I'm having difficulties communicating with my partner...</div>
-                </div>
+                {% endfor %}
             </div>
         </div>
         
@@ -1227,6 +1268,8 @@
         const sidebar = document.getElementById('sidebar');
         
         let isMedicalChat = false;
+        let currentTopicId = null;
+        let currentTopicTitle = "New Conversation";
         
         // Fix viewport height for mobile browsers
         function setViewportHeight() {
@@ -1286,12 +1329,27 @@
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ message: message })
+                    body: JSON.stringify({ 
+                        message: message,
+                        topic_id: currentTopicId,
+                        topic_title: currentTopicTitle
+                    })
                 })
                 .then(response => response.json())
                 .then(data => {
                     typingIndicator.style.display = 'none';
                     addBotMessage(data.response);
+                    
+                    // Update topic information if provided
+                    if (data.topic_id) {
+                        currentTopicId = data.topic_id;
+                        if (data.topic_title) {
+                            currentTopicTitle = data.topic_title;
+                            updateChatTitle(currentTopicTitle);
+                        }
+                        // Update sidebar with new topic if needed
+                        refreshTopics();
+                    }
                 })
                 .catch(error => {
                     console.error('Error:', error);
@@ -1317,12 +1375,27 @@
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ message: message })
+                body: JSON.stringify({ 
+                    message: message,
+                    topic_id: currentTopicId,
+                    topic_title: message.substring(0, 30) // Use the quick reply as the topic title
+                })
             })
             .then(response => response.json())
             .then(data => {
                 typingIndicator.style.display = 'none';
                 addBotMessage(data.response);
+                
+                // Update topic information if provided
+                if (data.topic_id) {
+                    currentTopicId = data.topic_id;
+                    if (data.topic_title) {
+                        currentTopicTitle = data.topic_title;
+                        updateChatTitle(currentTopicTitle);
+                    }
+                    // Update sidebar with new topic
+                    refreshTopics();
+                }
             })
             .catch(error => {
                 console.error('Error:', error);
@@ -1412,6 +1485,11 @@
                 // If in medical chat, switch back to AI
                 switchToAIChat();
             } else {
+                // Reset current topic
+                currentTopicId = null;
+                currentTopicTitle = "New Conversation";
+                updateChatTitle("Mental Health Assistant");
+                
                 // Clear chat history
                 messagesContainer.innerHTML = '';
                 
@@ -1483,28 +1561,97 @@
             }
         });
         
-        // Handle conversation item clicks
-        document.querySelectorAll('.conversation-item').forEach(item => {
-            item.addEventListener('click', () => {
-                // Switch back to AI chat if in medical chat
-                if (isMedicalChat) {
-                    switchToAIChat();
+        // Function to load a topic's chat history
+        function loadTopicHistory(topicId) {
+            // Switch back to AI chat if in medical chat
+            if (isMedicalChat) {
+                switchToAIChat();
+            }
+            
+            // Clear current messages
+            messagesContainer.innerHTML = '';
+            
+            // Show loading indicator
+            const loadingDiv = document.createElement('div');
+            loadingDiv.className = 'message bot-message';
+            loadingDiv.textContent = 'Loading conversation history...';
+            messagesContainer.appendChild(loadingDiv);
+            
+            // Fetch topic history from API
+            fetch(`/api/topics/${topicId}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
                 }
-                
-                // In a real app, this would load the selected conversation
-                const title = item.querySelector('.conversation-title').textContent;
-                document.querySelector('.chat-title').textContent = title;
-                
-                // For demo purposes, just clear and add a message
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Update current topic
+                    currentTopicId = data.topic.id;
+                    currentTopicTitle = data.topic.title;
+                    updateChatTitle(currentTopicTitle);
+                    
+                    // Clear loading message
+                    messagesContainer.innerHTML = '';
+                    
+                    // Display chat history
+                    if (data.history && data.history.length > 0) {
+                        data.history.forEach(entry => {
+                            // Add user message
+                            addMessage(entry.message, true);
+                            
+                            // Add bot response
+                            try {
+                                // Try to parse JSON response if stored that way
+                                const response = JSON.parse(entry.response);
+                                addBotMessage(response);
+                            } catch (e) {
+                                // If not JSON, use as is
+                                addBotMessage(entry.response);
+                            }
+                        });
+                    } else {
+                        // No history found
+                        addBotMessage(`Let's start our conversation about "${currentTopicTitle}". How can I help you today?`);
+                    }
+                } else {
+                    // Error handling
+                    messagesContainer.innerHTML = '';
+                    addBotMessage('Sorry, I could not load the conversation history. Please try again.');
+                }
+            })
+            .catch(error => {
+                console.error('Error loading topic history:', error);
                 messagesContainer.innerHTML = '';
-                addBotMessage(`Let's continue our conversation about "${title}", ${userName}. How are you feeling about this today?`);
-                
-                // Close sidebar on mobile
-                if (window.innerWidth <= 576) {
-                    sidebar.classList.remove('active');
-                }
+                addBotMessage('Sorry, I could not load the conversation history. Please try again.');
             });
-        });
+            
+            // Close sidebar on mobile
+            if (window.innerWidth <= 576) {
+                sidebar.classList.remove('active');
+            }
+        }
+        
+        // Function to handle conversation item clicks
+        function setupConversationItemListeners() {
+            document.querySelectorAll('.conversation-item').forEach(item => {
+                item.addEventListener('click', (e) => {
+                    // Don't trigger if clicking on action buttons
+                    if (e.target.closest('.conversation-actions')) {
+                        return;
+                    }
+                    
+                    const topicId = item.getAttribute('data-topic-id');
+                    if (topicId) {
+                        loadTopicHistory(topicId);
+                    }
+                });
+            });
+        }
+        
+        // Initialize conversation item listeners
+        setupConversationItemListeners();
         
         // Profile dropdown toggle
         const profileIcon = document.getElementById('profileIcon');
@@ -1535,6 +1682,195 @@
         document.getElementById('closeWelcome').addEventListener('click', function() {
             document.getElementById('welcomeContainer').style.display = 'none';
         });
+        
+        // Function to update chat title
+        function updateChatTitle(title) {
+            const chatTitle = document.querySelector('.chat-title');
+            if (chatTitle) {
+                chatTitle.textContent = title;
+            }
+        }
+        
+        // Function to refresh topics in sidebar
+        function refreshTopics() {
+            fetch('/api/topics', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Get sidebar content container
+                    const sidebarContent = document.querySelector('.sidebar-content');
+                    if (!sidebarContent) return;
+                    
+                    // Clear current content
+                    sidebarContent.innerHTML = '';
+                    
+                    // Check if we have topics
+                    if (Object.keys(data.topics_by_date).length === 0) {
+                        const emptyDiv = document.createElement('div');
+                        emptyDiv.className = 'empty-topics';
+                        emptyDiv.innerHTML = `
+                            <p>No conversation history yet.</p>
+                            <p>Start a new chat to create your first topic!</p>
+                        `;
+                        sidebarContent.appendChild(emptyDiv);
+                        return;
+                    }
+                    
+                    // Add topics by date
+                    for (const [date, topics] of Object.entries(data.topics_by_date)) {
+                        // Add date header
+                        const dateHeader = document.createElement('div');
+                        dateHeader.className = 'date-header';
+                        dateHeader.textContent = date;
+                        sidebarContent.appendChild(dateHeader);
+                        
+                        // Add topics for this date
+                        topics.forEach(topic => {
+                            const topicDiv = document.createElement('div');
+                            topicDiv.className = 'conversation-item';
+                            topicDiv.setAttribute('data-topic-id', topic.id);
+                            
+                            // Highlight current topic
+                            if (currentTopicId && currentTopicId == topic.id) {
+                                topicDiv.style.backgroundColor = 'var(--primary-light)';
+                                topicDiv.style.borderLeft = '3px solid var(--primary-color)';
+                            }
+                            
+                            topicDiv.innerHTML = `
+                                <div class="conversation-title">${topic.title}</div>
+                                <div class="conversation-actions">
+                                    <button class="edit-topic-btn" title="Edit topic" onclick="editTopic(${topic.id}, event)">✏️</button>
+                                    <button class="delete-topic-btn" title="Delete topic" onclick="deleteTopic(${topic.id}, event)">🗑️</button>
+                                </div>
+                            `;
+                            sidebarContent.appendChild(topicDiv);
+                        });
+                    }
+                    
+                    // Setup listeners for the new items
+                    setupConversationItemListeners();
+                }
+            })
+            .catch(error => {
+                console.error('Error refreshing topics:', error);
+            });
+        }
+        
+        // Function to edit topic title
+        function editTopic(topicId, event) {
+            // Prevent click from bubbling to parent
+            if (event) {
+                event.stopPropagation();
+            }
+            
+            // Find the topic element
+            const topicElement = document.querySelector(`.conversation-item[data-topic-id="${topicId}"]`);
+            if (!topicElement) return;
+            
+            // Get the current title
+            const titleElement = topicElement.querySelector('.conversation-title');
+            const currentTitle = titleElement.textContent;
+            
+            // Prompt for new title
+            const newTitle = prompt('Enter new topic title:', currentTitle);
+            
+            // If user cancels or enters empty title, do nothing
+            if (!newTitle || newTitle.trim() === '') return;
+            
+            // Update the topic via API
+            fetch(`/api/topics/${topicId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ title: newTitle.trim() })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Update UI
+                    titleElement.textContent = data.topic.title;
+                    
+                    // If this is the current topic, update the chat title
+                    if (currentTopicId == topicId) {
+                        currentTopicTitle = data.topic.title;
+                        updateChatTitle(currentTopicTitle);
+                    }
+                } else {
+                    alert('Failed to update topic: ' + (data.error || 'Unknown error'));
+                }
+            })
+            .catch(error => {
+                console.error('Error updating topic:', error);
+                alert('Failed to update topic. Please try again.');
+            });
+        }
+        
+        // Function to delete topic
+        function deleteTopic(topicId, event) {
+            // Prevent click from bubbling to parent
+            if (event) {
+                event.stopPropagation();
+            }
+            
+            // Confirm deletion
+            if (!confirm('Are you sure you want to delete this conversation? This action cannot be undone.')) {
+                return;
+            }
+            
+            // Delete the topic via API
+            fetch(`/api/topics/${topicId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // If this was the current topic, reset
+                    if (currentTopicId == topicId) {
+                        currentTopicId = null;
+                        currentTopicTitle = "New Conversation";
+                        updateChatTitle("Mental Health Assistant");
+                        
+                        // Clear chat and show welcome
+                        messagesContainer.innerHTML = '';
+                        const welcomeContainer = document.createElement('div');
+                        welcomeContainer.className = 'welcome-container';
+                        welcomeContainer.innerHTML = `
+                            <button class="close-welcome" onclick="this.parentElement.style.display='none'">&times;</button>
+                            <div class="welcome-header">Welcome, ${userName}!</div>
+                            <div class="welcome-message">I'm your mental health companion. How are you feeling today?</div>
+                            <div class="quick-replies">
+                                <button class="quick-reply-btn" onclick="sendQuickReply('I\\'m feeling good today')">😊 Good</button>
+                                <button class="quick-reply-btn" onclick="sendQuickReply('I\\'m feeling okay')">😐 Okay</button>
+                                <button class="quick-reply-btn" onclick="sendQuickReply('I\\'m feeling anxious')">😟 Anxious</button>
+                                <button class="quick-reply-btn" onclick="sendQuickReply('I\\'m feeling sad')">😢 Sad</button>
+                            </div>
+                        `;
+                        messagesContainer.appendChild(welcomeContainer);
+                    }
+                    
+                    // Refresh topics list
+                    refreshTopics();
+                } else {
+                    alert('Failed to delete topic: ' + (data.error || 'Unknown error'));
+                }
+            })
+            .catch(error => {
+                console.error('Error deleting topic:', error);
+                alert('Failed to delete topic. Please try again.');
+            });
+        }
+        
+        // Initial setup - refresh topics to ensure we have the latest data
+        refreshTopics();
     </script>
 </body>
 </html>
