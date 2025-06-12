@@ -10,3 +10,4 @@ requests
 gunicorn
 eventlet
 psycopg2-binary
+gevent>=1.4
