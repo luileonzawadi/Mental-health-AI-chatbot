@@ -165,7 +165,7 @@ def get_db_session():
 # Enhanced OpenRouter Integration
 def chat_with_openrouter(message):
     try:
-        print(f"Attempting to call OpenRouter with API key: {OPENROUTER_API_KEY[:4]}...")
+        print(f"Attempting to call OpenRouter with API key: {OPENROUTER_API_KEY[:6]}...")
 
         try:
             socket.gethostbyname('openrouter.ai')
