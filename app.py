@@ -257,11 +257,7 @@ def process_chat():
         # Get response from OpenRouter
         response = chat_with_openrouter(message)
         
-        # Return the response
-        return jsonify({"response": response})
-    except Exception as e:
-        print(f"Error in process_chat: {str(e)}")
-        return jsonify({"error": "An error occurred processing your request"}), 500story if user is logged in
+        # Save to chat history if user is logged in
         try:
             from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
             valid_jwt = False
@@ -277,7 +273,7 @@ def process_chat():
                     chat_entry = ChatHistory(
                         user_id=user_id,
                         message=message,
-                        response=json.dumps(response)  # Save as JSON string
+                        response=response
                     )
                     db.session.add(chat_entry)
                     db.session.commit()
@@ -374,6 +370,22 @@ def chat():
         user_id = get_jwt_identity()
         user = User.query.get(user_id)
         user_name = user.name if user and user.name else user.email.split('@')[0]
+        
+        topics_by_date = {}
+        try:
+            topics = Topic.query.filter_by(user_id=user_id).order_by(Topic.created_at.desc()).all()
+            for topic in topics:
+                date_str = topic.created_at.strftime('%Y-%m-%d')
+                if date_str not in topics_by_date:
+                    topics_by_date[date_str] = []
+                topics_by_date[date_str].append(topic)
+        except Exception as e:
+            print(f"Error fetching topics: {str(e)}")
+        
+        return render_template('chat.html', user_id=user_id, user_name=user_name, topics_by_date=topics_by_date)
+    except Exception as e:
+        print(f"Error accessing chat: {str(e)}")
+        return redirect('/')nd user.name else user.email.split('@')[0]
         
         topics_by_date = {}
         try:
