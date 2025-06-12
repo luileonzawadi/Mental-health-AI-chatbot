@@ -150,12 +150,17 @@ def get_db_session():
 
 def chat_with_openrouter(message):
     try:
+        # Disable SSL warnings
+        import urllib3
+        urllib3.disable_warnings()
+        
         system_instruction = (
             "You are a friendly, compassionate AI assistant trained in Cognitive Behavioral Therapy (CBT). "
             "You help users improve their mental and emotional well-being. "
             "Only respond to questions related to health and mental health. If a user asks anything unrelated, "
             "gently redirect them back to mental wellness topics."
         )
+        
         data = {
             "model": "openai/gpt-3.5-turbo",
             "messages": [
@@ -165,34 +170,35 @@ def chat_with_openrouter(message):
             "temperature": 0.7,
             "max_tokens": 500
         }
-        print(f"Sending request to OpenRouter with data: {json.dumps(data, indent=2)}")
+        
         url = "https://openrouter.ai/api/v1/chat/completions"
         headers = {
-            "Authorization": f"Bearer {os.getenv('OPENROUTER_API_KEY')}",
-            "Content-Type": "application/json"
+            "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+            "Content-Type": "application/json",
+            "HTTP-Referer": request.host_url if request else "https://mental-health-ai-chatbot.onrender.com",
+            "X-Title": "Mental Health AI Chatbot"
         }
-        max_retries = 3
-        for attempt in range(max_retries):
-            try:
-                response = requests.post(
-                    url,
-                    headers=headers,
-                    json=data,
-                    timeout=30
-                )
-                break
-            except requests.exceptions.RequestException as e:
-                print(f"Attempt {attempt+1} failed: {e}")
-                if attempt == max_retries - 1:
-                    raise
+        
+        # Simple request with SSL verification disabled
+        response = requests.post(
+            url,
+            headers=headers,
+            json=data,
+            timeout=30,
+            verify=False
+        )
+        
         if response.status_code == 200:
-            return response.json()
+            response_data = response.json()
+            return response_data["choices"][0]["message"]["content"]
         else:
-            print(f"OpenRouter API error: {response.status_code} - {response.text}")
-            return {"error": "Failed to get response from OpenRouter."}
+            error_msg = f"API Error: Status {response.status_code}"
+            print(error_msg)
+            return f"I'm sorry, I couldn't process your message right now. Please try again later. (Error {response.status_code})"
+            
     except Exception as e:
-        print(f"Exception in chat_with_openrouter: {e}")
-        return {"error": str(e)}
+        print(f"Exception in chat_with_openrouter: {str(e)}")
+        return "I'm sorry, I encountered an error processing your message. Please try again later."
 
 # ...rest of your routes and logic remain unchanged...
 @app.route('/')
@@ -251,7 +257,11 @@ def process_chat():
         # Get response from OpenRouter
         response = chat_with_openrouter(message)
         
-        # Save to chat history if user is logged in
+        # Return the response
+        return jsonify({"response": response})
+    except Exception as e:
+        print(f"Error in process_chat: {str(e)}")
+        return jsonify({"error": "An error occurred processing your request"}), 500story if user is logged in
         try:
             from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
             valid_jwt = False
