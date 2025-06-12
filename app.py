@@ -165,26 +165,6 @@ def get_db_session():
 # Enhanced OpenRouter Integration
 def chat_with_openrouter(message):
     try:
-        print(f"Attempting to call OpenRouter with API key: {OPENROUTER_API_KEY[:10]}...")
-
-        # Disable SSL warnings
-        import urllib3
-        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-        
-        # Create a simple session without the recursive SSL configuration
-        session = requests.Session()
-        session.verify = False
-        
-        # Use a simpler retry mechanism
-        url = "https://openrouter.ai/api/v1/chat/completions"
-        headers = {
-            "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-            "Content-Type": "application/json",
-            "HTTP-Referer": request.host_url,
-            "X-Title": "Mental Health AI Chatbot",
-            "Accept": "application/json"
-        }
-
         system_instruction = (
             "You are a friendly, compassionate AI assistant trained in Cognitive Behavioral Therapy (CBT). "
             "You help users improve their mental and emotional well-being. "
@@ -204,44 +184,37 @@ def chat_with_openrouter(message):
 
         print(f"Sending request to OpenRouter with data: {json.dumps(data, indent=2)}")
 
-        # Make the request with simple retry logic
+        url = "https://openrouter.ai/api/v1/chat/completions"  # Make sure this is your actual endpoint
+        headers = {
+            "Authorization": f"Bearer {os.getenv('OPENROUTER_API_KEY')}",
+            "Content-Type": "application/json"
+        }
+
         max_retries = 3
         for attempt in range(max_retries):
             try:
                 response = requests.post(
-                    url, 
-                    headers=headers, 
-                    json=data, 
-                    timeout=30, 
-                    verify=False
+                    url,
+                    headers=headers,
+                    json=data,
+                    timeout=30,
+                    verify=False  # Only use this if you have SSL issues; otherwise, remove it for production
                 )
                 break
             except requests.exceptions.RequestException as e:
-                if attempt < max_retries - 1:
-                    print(f"Request failed, retrying ({attempt+1}/{max_retries}): {str(e)}")
-                    time.sleep(2 ** attempt)  # Exponential backoff
-                else:
+                print(f"Attempt {attempt+1} failed: {e}")
+                if attempt == max_retries - 1:
                     raise
 
         if response.status_code == 200:
-            try:
-                response_json = response.json()
-                print("✅ API Call Successful!")
-                print(f"Response:\n{json.dumps(response_json, indent=2)}")
-                return response_json["choices"][0]["message"]["content"]
-            except (KeyError, IndexError):
-                print(f"Unexpected response format:\n{response.text}")
-                return "Unexpected response format from the AI service."
+            return response.json()
         else:
-            print(f"❌ API Error: {response.status_code}")
-            print(f"Body: {response.text}")
-            return f"Error {response.status_code}: Failed to get response."
+            print(f"OpenRouter API error: {response.status_code} - {response.text}")
+            return {"error": "Failed to get response from OpenRouter."}
 
     except Exception as e:
-        print(f"❌ Exception: {str(e)}\n{traceback.format_exc()}")
-        return "An error occurred."
-        
-
+        print(f"Exception in chat_with_openrouter: {e}")
+        return {"error": str(e)}
 # Routes
 @app.route('/')
 def login_form():
