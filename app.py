@@ -197,8 +197,7 @@ def chat_with_openrouter(message):
                     url,
                     headers=headers,
                     json=data,
-                    timeout=30,
-                     # Only use this if you have SSL issues; otherwise, remove it for production
+                    timeout=30
                 )
                 break
             except requests.exceptions.RequestException as e:
@@ -215,10 +214,10 @@ def chat_with_openrouter(message):
     except Exception as e:
         print(f"Exception in chat_with_openrouter: {e}")
         return {"error": str(e)}
+
 # Routes
 @app.route('/')
 def login_form():
-    # Handle HEAD requests from monitoring services
     if request.method == 'HEAD':
         return '', 200
     return render_template('login.html')
@@ -276,7 +275,6 @@ def process_chat():
         # Save to chat history if user is logged in
         try:
             from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
-            # Try to verify JWT but continue if not available
             valid_jwt = False
             try:
                 verify_jwt_in_request(optional=True)
@@ -290,7 +288,7 @@ def process_chat():
                     chat_entry = ChatHistory(
                         user_id=user_id,
                         message=message,
-                        response=response
+                        response=json.dumps(response)  # Save as JSON string
                     )
                     db.session.add(chat_entry)
                     db.session.commit()
@@ -368,7 +366,6 @@ def register():
             session.add(user)
             session.commit()
             
-            # Return success message that will trigger a popup
             return jsonify({"success": True, "message": "Registration successful! You can now log in."})
             
         except SQLAlchemyError as e:
@@ -480,7 +477,7 @@ def handle_message(data):
                 chat_entry = ChatHistory(
                     user_id=user_id,
                     message=data['message'],
-                    response=response
+                    response=json.dumps(response)  # Save as JSON string
                 )
                 db.session.add(chat_entry)
                 db.session.commit()
