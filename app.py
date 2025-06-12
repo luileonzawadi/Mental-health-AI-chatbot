@@ -48,7 +48,7 @@ socket.setdefaulttimeout(30)
 eventlet.monkey_patch()
 
 # Get API key from environment variables
-OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+OPENROUTER_API_KEY = "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" 
 
 # Configuration
 class Config:
