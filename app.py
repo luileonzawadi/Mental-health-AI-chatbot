@@ -5,6 +5,7 @@ import time
 import socket
 import json
 import traceback
+import httpx
 import sys
 from flask import Flask, render_template, request, redirect, url_for, make_response, jsonify
 from flask_sqlalchemy import SQLAlchemy
@@ -148,19 +149,15 @@ def create_db_tables():
 def get_db_session():
     return db.session
 
+
 def chat_with_openrouter(message):
     try:
-        # Disable SSL warnings
-        import urllib3
-        urllib3.disable_warnings()
-        
         system_instruction = (
             "You are a friendly, compassionate AI assistant trained in Cognitive Behavioral Therapy (CBT). "
             "You help users improve their mental and emotional well-being. "
             "Only respond to questions related to health and mental health. If a user asks anything unrelated, "
             "gently redirect them back to mental wellness topics."
         )
-        
         data = {
             "model": "openai/gpt-3.5-turbo",
             "messages": [
@@ -170,7 +167,6 @@ def chat_with_openrouter(message):
             "temperature": 0.7,
             "max_tokens": 500
         }
-        
         url = "https://openrouter.ai/api/v1/chat/completions"
         headers = {
             "Authorization": f"Bearer {OPENROUTER_API_KEY}",
@@ -178,16 +174,8 @@ def chat_with_openrouter(message):
             "HTTP-Referer": request.host_url if request else "https://mental-health-ai-chatbot.onrender.com",
             "X-Title": "Mental Health AI Chatbot"
         }
-        
-        # Simple request with SSL verification disabled
-        response = requests.post(
-            url,
-            headers=headers,
-            json=data,
-            timeout=30,
-           
-        )
-        
+        with httpx.Client(timeout=30) as client:
+            response = client.post(url, headers=headers, json=data)
         if response.status_code == 200:
             response_data = response.json()
             return response_data["choices"][0]["message"]["content"]
@@ -195,11 +183,9 @@ def chat_with_openrouter(message):
             error_msg = f"API Error: Status {response.status_code}"
             print(error_msg)
             return f"I'm sorry, I couldn't process your message right now. Please try again later. (Error {response.status_code})"
-            
     except Exception as e:
         print(f"Exception in chat_with_openrouter: {str(e)}")
         return "I'm sorry, I encountered an error processing your message. Please try again later."
-
 # ...rest of your routes and logic remain unchanged...
 @app.route('/')
 def login_form():
