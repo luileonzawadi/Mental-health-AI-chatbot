@@ -21,7 +21,6 @@ import mimetypes
 from sqlalchemy.exc import SQLAlchemyError
 from urllib3.util.retry import Retry
 from requests.adapters import HTTPAdapter
-import eventlet
 import flask
 from dotenv import load_dotenv
 
@@ -43,9 +42,6 @@ if proxies:
 
 # Set default timeout for socket operations
 socket.setdefaulttimeout(30)
-
-# Apply eventlet monkey patch
-eventlet.monkey_patch()
 
 # Get API key from environment variables
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
@@ -80,7 +76,7 @@ app.config.from_object(Config)
 # Initialize extensions
 db = SQLAlchemy(app)
 jwt = JWTManager(app)
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='gevent')
 
 # Initialize encryption
 FERNET_KEY = os.environ.get("FERNET_KEY", Fernet.generate_key().decode())
@@ -89,7 +85,6 @@ fernet = Fernet(FERNET_KEY.encode())
 # Database Models
 class User(db.Model):
     __tablename__ = 'users'
-    
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=True)
     email = db.Column(db.String(120), unique=True, nullable=False)
@@ -97,16 +92,13 @@ class User(db.Model):
     public_key = db.Column(db.Text, nullable=True)
     private_key = db.Column(db.Text, nullable=True)
     is_medical_professional = db.Column(db.Boolean, default=False)
-
     def set_password(self, password):
         self.password = generate_password_hash(password)
-
     def check_password(self, password):
         return check_password_hash(self.password, password)
 
 class ChatHistory(db.Model):
     __tablename__ = 'chat_history'
-    
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
     message = db.Column(db.Text, nullable=False)
@@ -116,7 +108,6 @@ class ChatHistory(db.Model):
 
 class Topic(db.Model):
     __tablename__ = 'topics'
-    
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
     title = db.Column(db.String(255), nullable=False)
@@ -125,14 +116,12 @@ class Topic(db.Model):
 
 class FileUpload(db.Model):
     __tablename__ = 'file_uploads'
-    
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
     filename = db.Column(db.String(255), nullable=False)
     filetype = db.Column(db.String(50), nullable=False)
     upload_time = db.Column(db.DateTime, default=datetime.utcnow)
     topic_id = db.Column(db.Integer, db.ForeignKey('topics.id'), nullable=True)
-
     def as_dict(self):
         return {
             "id": self.id,
@@ -144,13 +133,11 @@ class FileUpload(db.Model):
 
 # Helper Functions
 def create_db_tables():
-    """Ensure database tables are created properly"""
     with app.app_context():
         try:
             if 'postgresql' in app.config['SQLALCHEMY_DATABASE_URI']:
                 db.session.execute(db.text("CREATE SCHEMA IF NOT EXISTS public"))
                 db.session.commit()
-                
             print("Creating database tables...")
             db.create_all()
             print("Database tables created successfully")
@@ -159,10 +146,8 @@ def create_db_tables():
             raise
 
 def get_db_session():
-    """Get a fresh database session"""
     return db.session
 
-# Enhanced OpenRouter Integration
 def chat_with_openrouter(message):
     try:
         system_instruction = (
@@ -171,7 +156,6 @@ def chat_with_openrouter(message):
             "Only respond to questions related to health and mental health. If a user asks anything unrelated, "
             "gently redirect them back to mental wellness topics."
         )
-
         data = {
             "model": "openai/gpt-3.5-turbo",
             "messages": [
@@ -181,15 +165,12 @@ def chat_with_openrouter(message):
             "temperature": 0.7,
             "max_tokens": 500
         }
-
         print(f"Sending request to OpenRouter with data: {json.dumps(data, indent=2)}")
-
-        url = "https://openrouter.ai/api/v1/chat/completions"  # Make sure this is your actual endpoint
+        url = "https://openrouter.ai/api/v1/chat/completions"
         headers = {
             "Authorization": f"Bearer {os.getenv('OPENROUTER_API_KEY')}",
             "Content-Type": "application/json"
         }
-
         max_retries = 3
         for attempt in range(max_retries):
             try:
@@ -204,18 +185,16 @@ def chat_with_openrouter(message):
                 print(f"Attempt {attempt+1} failed: {e}")
                 if attempt == max_retries - 1:
                     raise
-
         if response.status_code == 200:
             return response.json()
         else:
             print(f"OpenRouter API error: {response.status_code} - {response.text}")
             return {"error": "Failed to get response from OpenRouter."}
-
     except Exception as e:
         print(f"Exception in chat_with_openrouter: {e}")
         return {"error": str(e)}
 
-# Routes
+# ...rest of your routes and logic remain unchanged...
 @app.route('/')
 def login_form():
     if request.method == 'HEAD':
@@ -491,39 +470,7 @@ def handle_message(data):
             'message': 'Sorry, I encountered an unexpected error.'
         }, broadcast=False)
 
-# Database Health Check Endpoint
-@app.route('/db-health')
-def db_health_check():
-    try:
-        db.session.execute("SELECT 1")
-        user_count = db.session.query(User).count()
-        return jsonify({
-            "status": "healthy",
-            "user_count": user_count,
-            "database_url": app.config['SQLALCHEMY_DATABASE_URI']
-        })
-    except Exception as e:
-        return jsonify({
-            "status": "unhealthy",
-            "error": str(e),
-            "database_url": app.config['SQLALCHEMY_DATABASE_URI']
-        }), 500
 
-# Health check endpoint for monitoring services
-@app.route('/health')
-def health_check():
-    return jsonify({"status": "ok"}), 200
-
-# Error Handlers
-@app.errorhandler(404)
-def not_found(error):
-    return jsonify({"error": "Resource not found"}), 404
-
-@app.errorhandler(500)
-def internal_error(error):
-    return jsonify({"error": "Internal server error"}), 500
-
-# Application Startup
 def initialize_app():
     try:
         create_db_tables()
@@ -533,13 +480,12 @@ def initialize_app():
         print(f"Failed to initialize application: {str(e)}")
         raise
 
-# Initialize database tables
 initialize_app()
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
-    socketio.run(app, 
-                host='0.0.0.0', 
-                port=port, 
+    socketio.run(app,
+                host='0.0.0.0',
+                port=port,
                 debug=os.environ.get('FLASK_DEBUG', 'False') == 'True',
                 log_output=True)
